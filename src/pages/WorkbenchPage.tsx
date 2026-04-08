@@ -81,13 +81,17 @@ export const WorkbenchPage = () => {
       <div className="grid grid-cols-1fr min-h-0">
         <div className="panel p-3 min-h-0 flex flex-col gap-3">
           <div className="flex-1 min-h-0 overflow-auto space-y-3 pr-1">
-            {currentSession?.records.map((record) => (
-              <RecordCard
-                key={record.id}
-                record={record}
-                onRetranslate={onRetranslate}
-              />
-            ))}
+            {currentSession?.records?.length ? (
+              currentSession?.records.map((record) => (
+                <RecordCard
+                  key={record.id}
+                  record={record}
+                  onRetranslate={onRetranslate}
+                />
+              ))
+            ) : (
+              <div className="text-textMuted">没有记录</div>
+            )}
           </div>
         </div>
       </div>
