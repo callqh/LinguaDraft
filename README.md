@@ -30,6 +30,20 @@ pnpm test:e2e
 lsof -ti :5173 | xargs kill -9
 ```
 
+## 1.1 启用本地模型 sidecar（真实推理）
+
+```bash
+pnpm setup:sidecar
+```
+
+并确保模型文件存在：
+
+- `local-model/models/builtin/asr/faster-whisper-base`
+- `local-model/models/builtin/translation/zh-en`
+- `local-model/models/builtin/translation/en-zh`
+
+文本语种识别使用 `franc`，不需要单独模型文件。
+
 ## 2. 项目目录结构
 
 ```text

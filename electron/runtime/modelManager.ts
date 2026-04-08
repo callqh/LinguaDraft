@@ -2,6 +2,8 @@ import { app } from "electron";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { LocalModel } from "./types";
+import { installBuiltinModels } from "./builtinInstaller";
+import { getUserModelRoot } from "./modelPaths";
 
 type PersistState = {
   models: Record<string, Pick<LocalModel, "status" | "progress">>;
@@ -31,13 +33,15 @@ export class ModelManager {
 
   constructor() {
     this.modelRoot = path.join(app.getAppPath(), "local-model", "manifest");
-    this.modelFileRoot = path.join(app.getPath("userData"), "models");
+    this.modelFileRoot = getUserModelRoot();
     this.statePath = path.join(app.getPath("userData"), "model-state.json");
     ensureDir(this.modelFileRoot);
     this.bootstrap();
   }
 
   private bootstrap() {
+    installBuiltinModels();
+
     const builtin = readJson<Omit<LocalModel, "status" | "progress">[]>(
       path.join(this.modelRoot, "builtin.manifest.json")
     );
@@ -150,7 +154,9 @@ export class ModelManager {
 
   deleteModel(modelId: string) {
     const model = this.models.find((item) => item.id === modelId);
-    if (!model || model.builtIn) return this.listModels();
+    if (!model || model.builtIn) {
+      throw new Error("内置模型不允许删除");
+    }
     this.clearTimer(modelId);
     this.setModel(modelId, { status: "not_installed", progress: 0 });
     const modelDir = path.join(this.modelFileRoot, modelId);

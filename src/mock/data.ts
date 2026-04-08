@@ -80,14 +80,6 @@ export const initialModels: LocalModel[] = [
     size: 0.19
   },
   {
-    id: "lid-fasttext-176",
-    type: "asr",
-    language: "语种识别",
-    version: "v1.0.0",
-    status: "installed",
-    size: 0.002
-  },
-  {
     id: "tr-zh",
     type: "translation",
     language: "中文",

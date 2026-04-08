@@ -2,6 +2,7 @@ import { app, BrowserWindow } from "electron";
 import * as path from "node:path";
 import * as net from "node:net";
 import { registerIpcHandlers } from "./ipc/modelHandlers";
+import { startSidecar, stopSidecar } from "./sidecar/processManager";
 
 const isDev = !app.isPackaged;
 const appHtmlPath = path.join(__dirname, "../dist/index.html");
@@ -48,7 +49,12 @@ async function createWindow() {
 }
 
 app.whenReady().then(() => {
-  registerIpcHandlers();
+  void startSidecar();
+  try {
+    registerIpcHandlers();
+  } catch (error) {
+    console.error("[main] IPC 初始化失败:", error);
+  }
   void createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow();
@@ -56,5 +62,6 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
+  stopSidecar();
   if (process.platform !== "darwin") app.quit();
 });

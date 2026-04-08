@@ -38,6 +38,7 @@ export const RecordCard = ({ record, onRetranslate }: Props) => {
           复制译文
         </button>
         <select
+          data-testid={`record-target-lang-${record.id}`}
           value={targetLang}
           onChange={(event) => setTargetLang(event.target.value)}
           className="h-9 rounded-xl border border-borderSoft px-2 text-sm"
@@ -48,7 +49,11 @@ export const RecordCard = ({ record, onRetranslate }: Props) => {
             </option>
           ))}
         </select>
-        <button className="btn-ghost text-xs" onClick={() => onRetranslate(record.id, targetLang)}>
+        <button
+          data-testid={`record-retranslate-${record.id}`}
+          className="btn-ghost text-xs"
+          onClick={() => onRetranslate(record.id, targetLang)}
+        >
           重新翻译
         </button>
       </div>

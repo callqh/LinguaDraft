@@ -31,17 +31,27 @@ export const InputComposer = ({
       data-testid="input-composer-textarea"
       value={inputText}
       onChange={(event) => onChange(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          onSubmit();
+        }
+      }}
       placeholder="在这里输入文字，或使用语音输入..."
       className="w-full h-28 resize-none rounded-xl border border-borderSoft p-3 text-sm outline-none focus:border-blue-300"
     />
     <div className="mt-3 flex items-center justify-between">
       <div className="flex items-center gap-2">
         <VoiceControlButton state={recordingState} onClick={onVoiceClick} />
-        <span className="text-xs text-textMuted">快捷键：Ctrl/Cmd + Tab</span>
+        <span className="text-xs text-textMuted">快捷键：Ctrl/Cmd + Tab，Enter 提交，Shift+Enter 换行</span>
       </div>
       <div className="flex items-center gap-3">
         <TranslationToggle checked={translationEnabled} onChange={onTranslationToggle} />
-        <LanguageSelector value={targetLang} onChange={onTargetLangChange} />
+        <LanguageSelector
+          testId="input-composer-target-lang"
+          value={targetLang}
+          onChange={onTargetLangChange}
+        />
         <button data-testid="input-composer-submit" className="btn-primary min-w-24" onClick={onSubmit}>
           提交
         </button>

@@ -24,4 +24,3 @@ export const registerIpcHandlers = () => {
     translationRunner.translate(text, targetLang)
   );
 };
-

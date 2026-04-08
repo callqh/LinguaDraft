@@ -19,23 +19,55 @@ type AppState = {
   setInputText: (value: string) => void;
   setTranslationEnabled: (value: boolean) => void;
   setTargetLang: (value: string) => void;
-  submitInput: (notify: (message: string, type?: "info" | "success" | "warning" | "error") => void) => Promise<void>;
+  submitInput: (
+    notify: (
+      message: string,
+      type?: "info" | "success" | "warning" | "error",
+    ) => void,
+  ) => Promise<void>;
   retranslateRecord: (
     recordId: string,
     targetLang: string,
-    notify: (message: string, type?: "info" | "success" | "warning" | "error") => void
+    notify: (
+      message: string,
+      type?: "info" | "success" | "warning" | "error",
+    ) => void,
   ) => Promise<"ok" | "missing-model">;
   startVoiceInput: (
-    notify: (message: string, type?: "info" | "success" | "warning" | "error") => void
+    notify: (
+      message: string,
+      type?: "info" | "success" | "warning" | "error",
+    ) => void,
   ) => Promise<"ok" | "missing-model">;
   stopVoiceInput: (
-    notify: (message: string, type?: "info" | "success" | "warning" | "error") => void
+    notify: (
+      message: string,
+      type?: "info" | "success" | "warning" | "error",
+    ) => void,
   ) => Promise<void>;
-  downloadModel: (modelId: string, notify: (message: string, type?: "info" | "success" | "warning" | "error") => void) => void;
+  downloadModel: (
+    modelId: string,
+    notify: (
+      message: string,
+      type?: "info" | "success" | "warning" | "error",
+    ) => void,
+  ) => void;
   pauseDownload: (modelId: string) => void;
   resumeDownload: (modelId: string) => void;
-  cancelDownload: (modelId: string, notify: (message: string, type?: "info" | "success" | "warning" | "error") => void) => void;
-  deleteModel: (modelId: string, notify: (message: string, type?: "info" | "success" | "warning" | "error") => void) => void;
+  cancelDownload: (
+    modelId: string,
+    notify: (
+      message: string,
+      type?: "info" | "success" | "warning" | "error",
+    ) => void,
+  ) => void;
+  deleteModel: (
+    modelId: string,
+    notify: (
+      message: string,
+      type?: "info" | "success" | "warning" | "error",
+    ) => void,
+  ) => void;
   getCurrentSession: () => Session | undefined;
   getTranslationModelByLanguage: (lang: string) => LocalModel | undefined;
   isVoiceModelInstalled: () => boolean;
@@ -49,18 +81,25 @@ const createRecord = (payload: Partial<RecordItem>): RecordItem => ({
   translationEnabled: payload.translationEnabled ?? false,
   targetLang: payload.targetLang,
   translatedText: payload.translatedText,
-  translationStatus: payload.translationStatus ?? "idle"
+  translationStatus: payload.translationStatus ?? "idle",
 });
 
-const updateRecordInSession = (sessions: Session[], sessionId: string, recordId: string, updater: (r: RecordItem) => RecordItem) =>
+const updateRecordInSession = (
+  sessions: Session[],
+  sessionId: string,
+  recordId: string,
+  updater: (r: RecordItem) => RecordItem,
+) =>
   sessions.map((session) =>
     session.id === sessionId
       ? {
           ...session,
           updatedAt: new Date().toISOString(),
-          records: session.records.map((record) => (record.id === recordId ? updater(record) : record))
+          records: session.records.map((record) =>
+            record.id === recordId ? updater(record) : record,
+          ),
         }
-      : session
+      : session,
   );
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -82,14 +121,21 @@ export const useAppStore = create<AppState>((set, get) => ({
   setTranslationEnabled: (value) => set({ translationEnabled: value }),
   setTargetLang: (value) => set({ targetLang: value }),
 
-  getCurrentSession: () => get().sessions.find((item) => item.id === get().currentSessionId),
+  getCurrentSession: () =>
+    get().sessions.find((item) => item.id === get().currentSessionId),
   getTranslationModelByLanguage: (lang) =>
-    get().models.find((model) => model.type === "translation" && model.language === lang),
+    get().models.find(
+      (model) => model.type === "translation" && model.language === lang,
+    ),
   isVoiceModelInstalled: () =>
-    get().models.some((model) => model.id === "asr-faster-whisper-base" && model.status === "installed"),
+    get().models.some(
+      (model) =>
+        model.id === "asr-faster-whisper-base" && model.status === "installed",
+    ),
 
   submitInput: async (notify) => {
-    const { inputText, translationEnabled, targetLang, currentSessionId } = get();
+    const { inputText, translationEnabled, targetLang, currentSessionId } =
+      get();
     const text = inputText.trim();
     if (!text) {
       notify("输入为空，无法提交", "warning");
@@ -102,7 +148,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       sourceLang,
       translationEnabled,
       targetLang: translationEnabled ? targetLang : undefined,
-      translationStatus: translationEnabled ? "translating" : "idle"
+      translationStatus: translationEnabled ? "translating" : "idle",
     });
 
     set((state) => ({
@@ -113,10 +159,10 @@ export const useAppStore = create<AppState>((set, get) => ({
           ? {
               ...session,
               updatedAt: new Date().toISOString(),
-              records: [baseRecord, ...session.records]
+              records: [baseRecord, ...session.records],
             }
-          : session
-      )
+          : session,
+      ),
     }));
 
     if (!translationEnabled) {
@@ -127,10 +173,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     const model = get().getTranslationModelByLanguage(targetLang);
     if (!model || model.status !== "installed") {
       set((state) => ({
-        sessions: updateRecordInSession(state.sessions, currentSessionId, baseRecord.id, (record) => ({
-          ...record,
-          translationStatus: "failed"
-        }))
+        sessions: updateRecordInSession(
+          state.sessions,
+          currentSessionId,
+          baseRecord.id,
+          (record) => ({
+            ...record,
+            translationStatus: "failed",
+          }),
+        ),
       }));
       notify(`${targetLang}模型未安装，请先下载`, "warning");
       return;
@@ -139,19 +190,29 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const translated = await translationService.translate(text, targetLang);
       set((state) => ({
-        sessions: updateRecordInSession(state.sessions, currentSessionId, baseRecord.id, (record) => ({
-          ...record,
-          translatedText: translated,
-          translationStatus: "success"
-        }))
+        sessions: updateRecordInSession(
+          state.sessions,
+          currentSessionId,
+          baseRecord.id,
+          (record) => ({
+            ...record,
+            translatedText: translated,
+            translationStatus: "success",
+          }),
+        ),
       }));
       notify("翻译完成", "success");
     } catch {
       set((state) => ({
-        sessions: updateRecordInSession(state.sessions, currentSessionId, baseRecord.id, (record) => ({
-          ...record,
-          translationStatus: "failed"
-        }))
+        sessions: updateRecordInSession(
+          state.sessions,
+          currentSessionId,
+          baseRecord.id,
+          (record) => ({
+            ...record,
+            translationStatus: "failed",
+          }),
+        ),
       }));
       notify("翻译失败，请稍后重试", "error");
     }
@@ -170,33 +231,51 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!record) return "ok";
 
     set((state) => ({
-      sessions: updateRecordInSession(state.sessions, currentSessionId, recordId, (item) => ({
-        ...item,
-        targetLang,
-        translationEnabled: true,
-        translationStatus: "translating"
-      }))
+      sessions: updateRecordInSession(
+        state.sessions,
+        currentSessionId,
+        recordId,
+        (item) => ({
+          ...item,
+          targetLang,
+          translationEnabled: true,
+          translationStatus: "translating",
+        }),
+      ),
     }));
 
     try {
-      const translated = await translationService.translate(record.sourceText, targetLang);
+      const translated = await translationService.translate(
+        record.sourceText,
+        targetLang,
+      );
       set((state) => ({
-        sessions: updateRecordInSession(state.sessions, currentSessionId, recordId, (item) => ({
-          ...item,
-          targetLang,
-          translatedText: translated,
-          translationStatus: "success"
-        }))
+        sessions: updateRecordInSession(
+          state.sessions,
+          currentSessionId,
+          recordId,
+          (item) => ({
+            ...item,
+            targetLang,
+            translatedText: translated,
+            translationStatus: "success",
+          }),
+        ),
       }));
       notify("重翻译完成（已覆盖原记录）", "success");
       return "ok";
     } catch {
       set((state) => ({
-        sessions: updateRecordInSession(state.sessions, currentSessionId, recordId, (item) => ({
-          ...item,
-          targetLang,
-          translationStatus: "failed"
-        }))
+        sessions: updateRecordInSession(
+          state.sessions,
+          currentSessionId,
+          recordId,
+          (item) => ({
+            ...item,
+            targetLang,
+            translationStatus: "failed",
+          }),
+        ),
       }));
       notify("重翻译失败", "error");
       return "ok";
@@ -223,7 +302,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       await voiceService.stopRecording();
       set({ recordingState: "transcribing" });
       const text = await voiceService.transcribe();
-      set((state) => ({ recordingState: "idle", inputText: state.inputText ? `${state.inputText}\n${text}` : text }));
+      set((state) => ({
+        recordingState: "idle",
+        inputText: state.inputText ? `${state.inputText}\n${text}` : text,
+      }));
       notify("语音识别完成，已回填输入框", "success");
     } catch {
       set({ recordingState: "failed" });
@@ -240,11 +322,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       model.progress ?? 0,
       (patch) => {
         set((state) => ({
-          models: state.models.map((item) => (item.id === modelId ? { ...item, ...patch } : item))
+          models: state.models.map((item) =>
+            item.id === modelId ? { ...item, ...patch } : item,
+          ),
         }));
       },
       () => notify(`${model.language ?? "语音"}模型下载完成`, "success"),
-      () => notify(`${model.language ?? "语音"}模型下载失败`, "error")
+      () => notify(`${model.language ?? "语音"}模型下载失败`, "error"),
     );
   },
 
@@ -252,7 +336,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     modelService.pauseDownload(modelId);
     if (!window.linguaDraft?.model) {
       set((state) => ({
-        models: state.models.map((item) => (item.id === modelId ? { ...item, status: "paused" } : item))
+        models: state.models.map((item) =>
+          item.id === modelId ? { ...item, status: "paused" } : item,
+        ),
       }));
     }
   },
@@ -261,7 +347,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     modelService.resumeDownload(modelId);
     if (!window.linguaDraft?.model) {
       set((state) => ({
-        models: state.models.map((item) => (item.id === modelId ? { ...item, status: "downloading" } : item))
+        models: state.models.map((item) =>
+          item.id === modelId ? { ...item, status: "downloading" } : item,
+        ),
       }));
     }
   },
@@ -271,8 +359,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!window.linguaDraft?.model) {
       set((state) => ({
         models: state.models.map((item) =>
-          item.id === modelId ? { ...item, status: "not_installed", progress: 0 } : item
-        )
+          item.id === modelId
+            ? { ...item, status: "not_installed", progress: 0 }
+            : item,
+        ),
       }));
     }
     notify("下载已取消", "info");
@@ -283,13 +373,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!window.linguaDraft?.model) {
       set((state) => ({
         models: state.models.map((item) =>
-          item.id === modelId ? { ...item, status: "not_installed", progress: 0 } : item
-        )
+          item.id === modelId
+            ? { ...item, status: "not_installed", progress: 0 }
+            : item,
+        ),
       }));
     }
     notify("模型已删除", "info");
-  }
+  },
 }));
 
 export const findLanguageLabel = (codeOrLabel: string) =>
-  languageOptions.find((item) => item.code === codeOrLabel || item.label === codeOrLabel)?.label ?? codeOrLabel;
+  languageOptions.find(
+    (item) => item.code === codeOrLabel || item.label === codeOrLabel,
+  )?.label ?? codeOrLabel;
