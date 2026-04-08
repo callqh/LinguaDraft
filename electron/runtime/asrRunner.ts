@@ -27,7 +27,6 @@ export const asrRunner = {
   },
 
   async start() {
-    if (!this.isModelReady()) throw new Error("语音模型未安装");
     recording = true;
     recordingStartedAt = Date.now();
     return { status: "recording" as const };
@@ -40,7 +39,7 @@ export const asrRunner = {
   },
 
   async transcribe(): Promise<TranscriptionResult> {
-    if (!this.isModelReady()) throw new Error("语音模型未安装");
+    if (!this.isModelReady()) return fallbackTranscribe();
     try {
       const result = await sidecarClient.transcribe();
       if (!result.text?.trim()) return fallbackTranscribe();

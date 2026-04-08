@@ -322,13 +322,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   startVoiceInput: async (notify) => {
-    if (!get().isVoiceModelInstalled()) {
-      notify("语音识别模型未安装", "warning");
-      return "missing-model";
-    }
     try {
       await voiceService.startRecording();
       set({ recordingState: "recording" });
+      if (!get().isVoiceModelInstalled()) {
+        notify("语音模型未安装，已使用演示转写", "info");
+      }
       return "ok";
     } catch {
       notify("无法启动录音", "error");
