@@ -6,10 +6,11 @@
   "description": "离线写作翻译工具 MVP（Electron + React + Vite）",
   "main": "dist-electron/main.js",
   "scripts": {
-    "dev": "concurrently -k \"vite\" \"tsc -p electron/tsconfig.json --watch\" \"wait-on tcp:5173 file:dist-electron/main.js && electron .\"",
+    "dev": "concurrently -k \"vite --port 5173 --strictPort\" \"tsc -p electron/tsconfig.json --watch\" \"wait-on tcp:5173 file:dist-electron/main.js && electron .\"",
     "build": "tsc -b && vite build && tsc -p electron/tsconfig.json",
     "preview": "vite preview",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:e2e": "pnpm build && playwright test"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -23,6 +24,7 @@
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.5.2",
+    "@playwright/test": "^1.55.0",
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.1.2",
     "electron": "35.7.5",

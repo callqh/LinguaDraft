@@ -18,6 +18,18 @@ pnpm build
 
 首次使用 `pnpm approve-builds` 时，请选择并允许 `electron`。
 
+运行 E2E：
+
+```bash
+pnpm test:e2e
+```
+
+若启动时提示 `Port 5173 is already in use`，先执行：
+
+```bash
+lsof -ti :5173 | xargs kill -9
+```
+
 ## 2. 项目目录结构
 
 ```text

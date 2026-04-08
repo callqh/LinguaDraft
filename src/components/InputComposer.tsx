@@ -28,6 +28,7 @@ export const InputComposer = ({
 }: Props) => (
   <div className="panel p-3">
     <textarea
+      data-testid="input-composer-textarea"
       value={inputText}
       onChange={(event) => onChange(event.target.value)}
       placeholder="在这里输入文字，或使用语音输入..."
@@ -41,11 +42,10 @@ export const InputComposer = ({
       <div className="flex items-center gap-3">
         <TranslationToggle checked={translationEnabled} onChange={onTranslationToggle} />
         <LanguageSelector value={targetLang} onChange={onTargetLangChange} />
-        <button className="btn-primary min-w-24" onClick={onSubmit}>
+        <button data-testid="input-composer-submit" className="btn-primary min-w-24" onClick={onSubmit}>
           提交
         </button>
       </div>
     </div>
   </div>
 );
-

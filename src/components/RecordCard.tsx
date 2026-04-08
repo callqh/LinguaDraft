@@ -13,7 +13,7 @@ type Props = {
 export const RecordCard = ({ record, onRetranslate }: Props) => {
   const [targetLang, setTargetLang] = useState(record.targetLang ?? "英文");
   return (
-    <article className="panel p-4">
+    <article data-testid="record-card" className="panel p-4">
       <div className="mb-3 flex items-center justify-between text-xs text-textMuted">
         <div className="flex items-center gap-3">
           <span>{formatClock(record.createdAt)}</span>
@@ -55,4 +55,3 @@ export const RecordCard = ({ record, onRetranslate }: Props) => {
     </article>
   );
 };
-
