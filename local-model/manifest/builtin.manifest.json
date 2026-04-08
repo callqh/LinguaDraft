@@ -1,0 +1,35 @@
+[
+  {
+    "id": "asr-faster-whisper-base",
+    "type": "asr",
+    "language": "中文",
+    "version": "v1.0.0",
+    "size": 0.19,
+    "builtIn": true
+  },
+  {
+    "id": "lid-fasttext-176",
+    "type": "asr",
+    "language": "语种识别",
+    "version": "v1.0.0",
+    "size": 0.002,
+    "builtIn": true
+  },
+  {
+    "id": "tr-en",
+    "type": "translation",
+    "language": "英文",
+    "version": "v1.0.0",
+    "size": 0.18,
+    "builtIn": true
+  },
+  {
+    "id": "tr-zh",
+    "type": "translation",
+    "language": "中文",
+    "version": "v1.0.0",
+    "size": 0.18,
+    "builtIn": true
+  }
+]
+

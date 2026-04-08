@@ -1,0 +1,66 @@
+[
+  {
+    "id": "tr-ja",
+    "type": "translation",
+    "language": "日文",
+    "version": "v1.0.0",
+    "size": 0.26,
+    "builtIn": false,
+    "downloadUrl": "https://example.local/models/tr-ja-v1.zip"
+  },
+  {
+    "id": "tr-ko",
+    "type": "translation",
+    "language": "韩文",
+    "version": "v1.0.0",
+    "size": 0.25,
+    "builtIn": false,
+    "downloadUrl": "https://example.local/models/tr-ko-v1.zip"
+  },
+  {
+    "id": "tr-fr",
+    "type": "translation",
+    "language": "法文",
+    "version": "v1.0.0",
+    "size": 0.29,
+    "builtIn": false,
+    "downloadUrl": "https://example.local/models/tr-fr-v1.zip"
+  },
+  {
+    "id": "tr-de",
+    "type": "translation",
+    "language": "德文",
+    "version": "v1.0.0",
+    "size": 0.28,
+    "builtIn": false,
+    "downloadUrl": "https://example.local/models/tr-de-v1.zip"
+  },
+  {
+    "id": "tr-ru",
+    "type": "translation",
+    "language": "俄文",
+    "version": "v1.0.0",
+    "size": 0.33,
+    "builtIn": false,
+    "downloadUrl": "https://example.local/models/tr-ru-v1.zip"
+  },
+  {
+    "id": "tr-es",
+    "type": "translation",
+    "language": "西班牙文",
+    "version": "v1.0.0",
+    "size": 0.30,
+    "builtIn": false,
+    "downloadUrl": "https://example.local/models/tr-es-v1.zip"
+  },
+  {
+    "id": "tr-it",
+    "type": "translation",
+    "language": "意大利文",
+    "version": "v1.0.0",
+    "size": 0.31,
+    "builtIn": false,
+    "downloadUrl": "https://example.local/models/tr-it-v1.zip"
+  }
+]
+

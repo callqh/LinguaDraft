@@ -1,2 +1,0 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-export const TranslationToggle = ({ checked, onChange }) => (_jsxs("label", { className: "inline-flex items-center gap-2 text-sm", children: [_jsx("span", { children: "\u7FFB\u8BD1" }), _jsx("button", { type: "button", onClick: () => onChange(!checked), className: `relative h-6 w-11 rounded-full transition ${checked ? "bg-accent" : "bg-slate-300"}`, children: _jsx("span", { className: `absolute top-0.5 h-5 w-5 rounded-full bg-white transition ${checked ? "left-[22px]" : "left-0.5"}` }) })] }));

@@ -16,12 +16,18 @@ type DownloadTask = {
 };
 
 const tasks = new Map<string, DownloadTask>();
+const polls = new Map<string, number>();
 
 const clearTask = (modelId: string) => {
   const task = tasks.get(modelId);
   if (task) {
     window.clearInterval(task.timer);
     tasks.delete(modelId);
+  }
+  const pollTimer = polls.get(modelId);
+  if (pollTimer) {
+    window.clearInterval(pollTimer);
+    polls.delete(modelId);
   }
 };
 
@@ -51,6 +57,17 @@ export const modelService = {
     return structuredClone(initialModels);
   },
 
+  async listModels() {
+    if (window.linguaDraft?.model) {
+      try {
+        return await window.linguaDraft.model.list();
+      } catch {
+        return structuredClone(initialModels);
+      }
+    }
+    return structuredClone(initialModels);
+  },
+
   downloadModel(
     modelId: string,
     initialProgress: number,
@@ -58,6 +75,33 @@ export const modelService = {
     onDone: DownloadDone,
     onFailed: DownloadFailed
   ) {
+    if (window.linguaDraft?.model) {
+      void window.linguaDraft.model.download(modelId);
+      onTick({ status: "downloading", progress: Math.round(initialProgress || 1) });
+
+      const pollTimer = window.setInterval(async () => {
+        try {
+          const models = await window.linguaDraft!.model.list();
+          const current = models.find((item) => item.id === modelId);
+          if (!current) return;
+          onTick({ status: current.status, progress: current.progress });
+
+          if (current.status === "installed") {
+            clearTask(modelId);
+            onDone();
+          } else if (current.status === "failed" || current.status === "not_installed") {
+            clearTask(modelId);
+            onFailed();
+          }
+        } catch {
+          clearTask(modelId);
+          onFailed();
+        }
+      }, 420);
+      polls.set(modelId, pollTimer);
+      return;
+    }
+
     clearTask(modelId);
     const task: DownloadTask = {
       modelId,
@@ -74,21 +118,38 @@ export const modelService = {
   },
 
   pauseDownload(modelId: string) {
+    if (window.linguaDraft?.model) {
+      void window.linguaDraft.model.pause(modelId);
+      return;
+    }
     const task = tasks.get(modelId);
     if (task) task.paused = true;
   },
 
   resumeDownload(modelId: string) {
+    if (window.linguaDraft?.model) {
+      void window.linguaDraft.model.resume(modelId);
+      return;
+    }
     const task = tasks.get(modelId);
     if (task) task.paused = false;
   },
 
   cancelDownload(modelId: string) {
+    if (window.linguaDraft?.model) {
+      clearTask(modelId);
+      void window.linguaDraft.model.cancel(modelId);
+      return;
+    }
     clearTask(modelId);
   },
 
   deleteModel(modelId: string) {
+    if (window.linguaDraft?.model) {
+      clearTask(modelId);
+      void window.linguaDraft.model.delete(modelId);
+      return;
+    }
     clearTask(modelId);
   }
 };
-

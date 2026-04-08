@@ -14,6 +14,7 @@ type AppState = {
   targetLang: string;
   recordingState: RecordingState;
   models: LocalModel[];
+  initializeModels: () => Promise<void>;
   setCurrentSession: (sessionId: string) => void;
   setInputText: (value: string) => void;
   setTranslationEnabled: (value: boolean) => void;
@@ -71,6 +72,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   targetLang: "英文",
   recordingState: "idle",
   models: modelService.getModels(),
+  initializeModels: async () => {
+    const models = await modelService.listModels();
+    set({ models });
+  },
 
   setCurrentSession: (sessionId) => set({ currentSessionId: sessionId }),
   setInputText: (value) => set({ inputText: value }),
@@ -81,7 +86,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   getTranslationModelByLanguage: (lang) =>
     get().models.find((model) => model.type === "translation" && model.language === lang),
   isVoiceModelInstalled: () =>
-    get().models.some((model) => model.type === "asr" && model.status === "installed"),
+    get().models.some((model) => model.id === "asr-faster-whisper-base" && model.status === "installed"),
 
   submitInput: async (notify) => {
     const { inputText, translationEnabled, targetLang, currentSessionId } = get();
@@ -245,39 +250,46 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   pauseDownload: (modelId) => {
     modelService.pauseDownload(modelId);
-    set((state) => ({
-      models: state.models.map((item) => (item.id === modelId ? { ...item, status: "paused" } : item))
-    }));
+    if (!window.linguaDraft?.model) {
+      set((state) => ({
+        models: state.models.map((item) => (item.id === modelId ? { ...item, status: "paused" } : item))
+      }));
+    }
   },
 
   resumeDownload: (modelId) => {
     modelService.resumeDownload(modelId);
-    set((state) => ({
-      models: state.models.map((item) => (item.id === modelId ? { ...item, status: "downloading" } : item))
-    }));
+    if (!window.linguaDraft?.model) {
+      set((state) => ({
+        models: state.models.map((item) => (item.id === modelId ? { ...item, status: "downloading" } : item))
+      }));
+    }
   },
 
   cancelDownload: (modelId, notify) => {
     modelService.cancelDownload(modelId);
-    set((state) => ({
-      models: state.models.map((item) =>
-        item.id === modelId ? { ...item, status: "not_installed", progress: 0 } : item
-      )
-    }));
+    if (!window.linguaDraft?.model) {
+      set((state) => ({
+        models: state.models.map((item) =>
+          item.id === modelId ? { ...item, status: "not_installed", progress: 0 } : item
+        )
+      }));
+    }
     notify("下载已取消", "info");
   },
 
   deleteModel: (modelId, notify) => {
     modelService.deleteModel(modelId);
-    set((state) => ({
-      models: state.models.map((item) =>
-        item.id === modelId ? { ...item, status: "not_installed", progress: 0 } : item
-      )
-    }));
+    if (!window.linguaDraft?.model) {
+      set((state) => ({
+        models: state.models.map((item) =>
+          item.id === modelId ? { ...item, status: "not_installed", progress: 0 } : item
+        )
+      }));
+    }
     notify("模型已删除", "info");
   }
 }));
 
 export const findLanguageLabel = (codeOrLabel: string) =>
   languageOptions.find((item) => item.code === codeOrLabel || item.label === codeOrLabel)?.label ?? codeOrLabel;
-

@@ -10,7 +10,7 @@ test.describe("LinguaDraft Electron MVP", () => {
 
     await expect(window.getByText("写译 · 本地")).toBeVisible();
     await expect(window.getByText("工作台")).toBeVisible();
-    await expect(window.getByText("未命名写作")).toBeVisible();
+    await expect(window.getByRole("main").getByText("未命名写作")).toBeVisible();
 
     await app.close();
   });
@@ -25,7 +25,7 @@ test.describe("LinguaDraft Electron MVP", () => {
     const beforeCount = await window.getByTestId("record-card").count();
     await window.getByTestId("input-composer-textarea").fill("E2E 提交测试文本");
     await window.getByTestId("input-composer-submit").click();
-    await expect(window.getByText("E2E 提交测试文本")).toBeVisible();
+    await expect(window.getByText("E2E 提交测试文本", { exact: true }).first()).toBeVisible();
     await expect(window.getByTestId("record-card")).toHaveCount(beforeCount + 1);
 
     await app.close();

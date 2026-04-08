@@ -1,9 +1,32 @@
 import { app, BrowserWindow } from "electron";
 import * as path from "node:path";
+import * as net from "node:net";
+import { registerIpcHandlers } from "./ipc/modelHandlers";
 
 const isDev = !app.isPackaged;
+const appHtmlPath = path.join(__dirname, "../dist/index.html");
+const devHost = "127.0.0.1";
+const devPort = 5173;
 
-function createWindow() {
+const canConnectDevServer = () =>
+  new Promise<boolean>((resolve) => {
+    const socket = net.connect({ host: devHost, port: devPort });
+    socket.setTimeout(200);
+    socket.once("connect", () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once("timeout", () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.once("error", () => {
+      socket.destroy();
+      resolve(false);
+    });
+  });
+
+async function createWindow() {
   const win = new BrowserWindow({
     width: 1480,
     height: 920,
@@ -17,17 +40,18 @@ function createWindow() {
     }
   });
 
-  if (isDev) {
-    void win.loadURL("http://localhost:5173");
-  } else {
-    void win.loadFile(path.join(__dirname, "../dist/index.html"));
+  if (isDev && (await canConnectDevServer())) {
+    void win.loadURL(`http://${devHost}:${devPort}`);
+    return;
   }
+  void win.loadFile(appHtmlPath);
 }
 
 app.whenReady().then(() => {
-  createWindow();
+  registerIpcHandlers();
+  void createWindow();
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) void createWindow();
   });
 });
 

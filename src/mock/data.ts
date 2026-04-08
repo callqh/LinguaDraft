@@ -72,12 +72,20 @@ export const initialSessions: Session[] = [
 
 export const initialModels: LocalModel[] = [
   {
-    id: "asr-base-zh",
+    id: "asr-faster-whisper-base",
     type: "asr",
     language: "中文",
     version: "v1.0.0",
     status: "installed",
-    size: 1.2
+    size: 0.19
+  },
+  {
+    id: "lid-fasttext-176",
+    type: "asr",
+    language: "语种识别",
+    version: "v1.0.0",
+    status: "installed",
+    size: 0.002
   },
   {
     id: "tr-zh",
@@ -85,7 +93,7 @@ export const initialModels: LocalModel[] = [
     language: "中文",
     version: "v1.0.0",
     status: "installed",
-    size: 1.2
+    size: 0.18
   },
   {
     id: "tr-en",
@@ -93,15 +101,15 @@ export const initialModels: LocalModel[] = [
     language: "英文",
     version: "v1.0.0",
     status: "installed",
-    size: 1.5
+    size: 0.18
   },
   {
     id: "tr-ja",
     type: "translation",
     language: "日文",
     version: "v1.0.0",
-    status: "installed",
-    size: 1.3
+    status: "not_installed",
+    size: 0.26
   },
   {
     id: "tr-ko",
@@ -109,16 +117,16 @@ export const initialModels: LocalModel[] = [
     language: "韩文",
     version: "v1.0.0",
     status: "not_installed",
-    size: 1.4
+    size: 0.25
   },
   {
     id: "tr-fr",
     type: "translation",
     language: "法文",
     version: "v1.0.0",
-    status: "failed",
-    size: 1.6,
-    progress: 68
+    status: "not_installed",
+    size: 0.29,
+    progress: 0
   },
   {
     id: "tr-de",
@@ -126,7 +134,7 @@ export const initialModels: LocalModel[] = [
     language: "德文",
     version: "v1.0.0",
     status: "not_installed",
-    size: 1.5
+    size: 0.28
   },
   {
     id: "tr-ru",
@@ -134,7 +142,7 @@ export const initialModels: LocalModel[] = [
     language: "俄文",
     version: "v1.0.0",
     status: "not_installed",
-    size: 1.7
+    size: 0.33
   },
   {
     id: "tr-es",
@@ -142,7 +150,7 @@ export const initialModels: LocalModel[] = [
     language: "西班牙文",
     version: "v1.0.0",
     status: "not_installed",
-    size: 1.6
+    size: 0.3
   },
   {
     id: "tr-it",
@@ -150,7 +158,6 @@ export const initialModels: LocalModel[] = [
     language: "意大利文",
     version: "v1.0.0",
     status: "not_installed",
-    size: 1.5
+    size: 0.31
   }
 ];
-

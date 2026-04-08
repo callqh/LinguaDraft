@@ -9,11 +9,27 @@ const detectByText = (text: string) => {
 
 export const translationService = {
   async detectLanguage(text: string) {
+    try {
+      if (window.linguaDraft?.translation) {
+        const result = await window.linguaDraft.translation.detect(text);
+        return result.language === "unknown" ? detectByText(text) : result.language;
+      }
+    } catch {
+      // fallback to mock
+    }
     await sleep(240);
     return detectByText(text);
   },
 
   async translate(text: string, targetLang: string) {
+    try {
+      if (window.linguaDraft?.translation) {
+        return await window.linguaDraft.translation.translate(text, targetLang);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "翻译服务暂时不可用";
+      throw new Error(message);
+    }
     await sleep(780);
     if (Math.random() < 0.08) {
       throw new Error("翻译服务暂时不可用");
@@ -21,4 +37,3 @@ export const translationService = {
     return `[${targetLang}译文] ${text}`;
   }
 };
-

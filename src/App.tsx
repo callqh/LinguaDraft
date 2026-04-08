@@ -5,8 +5,15 @@ import { ModelsPage } from "@/pages/ModelsPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { GlobalDialog } from "@/components/GlobalDialog";
 import { ToastNotice } from "@/components/ToastNotice";
+import { useEffect } from "react";
+import { useAppStore } from "@/stores/useAppStore";
 
 function App() {
+  const initializeModels = useAppStore((state) => state.initializeModels);
+  useEffect(() => {
+    void initializeModels();
+  }, [initializeModels]);
+
   return (
     <>
       <Routes>
@@ -24,4 +31,3 @@ function App() {
 }
 
 export default App;
-
