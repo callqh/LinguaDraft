@@ -30,6 +30,12 @@ export const WorkbenchPage = () => {
   const sidebarPinned = useUiStore((state) => state.sidebarPinned);
   const setSidebarPinned = useUiStore((state) => state.setSidebarPinned);
   const setSidebarPeek = useUiStore((state) => state.setSidebarPeek);
+  const scheduleSidebarPeekHide = useUiStore(
+    (state) => state.scheduleSidebarPeekHide,
+  );
+  const cancelSidebarPeekHide = useUiStore(
+    (state) => state.cancelSidebarPeekHide,
+  );
   const records = currentSession?.records ?? [];
 
   const openModelDialog = (lang: string) => {
@@ -96,7 +102,13 @@ export const WorkbenchPage = () => {
           if (next) setSidebarPeek(false);
         }}
         onSidebarTriggerHover={(value) => {
-          if (!sidebarPinned) setSidebarPeek(value);
+          if (sidebarPinned) return;
+          if (value) {
+            cancelSidebarPeekHide();
+            setSidebarPeek(true);
+            return;
+          }
+          scheduleSidebarPeekHide(180);
         }}
       />
       <div className="grid grid-cols-1fr min-h-0">

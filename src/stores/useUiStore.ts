@@ -12,7 +12,11 @@ type UiState = {
   removeToast: (id: string) => void;
   setSidebarPinned: (value: boolean) => void;
   setSidebarPeek: (value: boolean) => void;
+  scheduleSidebarPeekHide: (delayMs?: number) => void;
+  cancelSidebarPeekHide: () => void;
 };
+
+let sidebarHideTimer: number | null = null;
 
 export const useUiStore = create<UiState>((set) => ({
   dialog: {
@@ -41,4 +45,19 @@ export const useUiStore = create<UiState>((set) => ({
   removeToast: (id) => set((state) => ({ toasts: state.toasts.filter((item) => item.id !== id) })),
   setSidebarPinned: (value) => set({ sidebarPinned: value }),
   setSidebarPeek: (value) => set({ sidebarPeek: value }),
+  scheduleSidebarPeekHide: (delayMs = 180) => {
+    if (sidebarHideTimer) {
+      window.clearTimeout(sidebarHideTimer);
+    }
+    sidebarHideTimer = window.setTimeout(() => {
+      set({ sidebarPeek: false });
+      sidebarHideTimer = null;
+    }, delayMs);
+  },
+  cancelSidebarPeekHide: () => {
+    if (sidebarHideTimer) {
+      window.clearTimeout(sidebarHideTimer);
+      sidebarHideTimer = null;
+    }
+  },
 }));

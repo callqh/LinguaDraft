@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { PanelLeftClose, Pin } from "lucide-react";
 import { SessionList } from "@/components/SessionList";
 
 const menu = [
@@ -7,13 +8,25 @@ const menu = [
   { label: "设置", to: "/settings" }
 ];
 
-export const AppSidebar = () => (
+type Props = {
+  pinned?: boolean;
+  onTogglePinned?: () => void;
+};
+
+export const AppSidebar = ({ pinned = true, onTogglePinned }: Props) => (
   <aside className="panel h-full p-4 flex flex-col">
-    <div className="mb-4">
-      <div>
+    <div className="mb-4 flex items-start justify-between">
+      <div className="min-w-0">
         <div className="text-lg font-semibold">写译 · 本地</div>
         <div className="text-xs text-textMuted">离线写作翻译工具</div>
       </div>
+      <button
+        aria-label={pinned ? "收起侧边栏" : "固定侧边栏"}
+        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
+        onClick={onTogglePinned}
+      >
+        {pinned ? <PanelLeftClose size={16} /> : <Pin size={15} />}
+      </button>
     </div>
     <nav className="space-y-2 mb-5">
       {menu.map((item) => (
