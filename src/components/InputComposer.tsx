@@ -57,5 +57,22 @@ export const InputComposer = ({
         </button>
       </div>
     </div>
+    {recordingState === "recording" ? (
+      <div
+        data-testid="voice-wave"
+        className="mt-3 rounded-xl border border-blue-100 bg-blue-50/60 px-3 py-2"
+      >
+        <div className="mb-1 text-xs text-accent">正在收集声音...</div>
+        <div className="voice-wave-track">
+          {Array.from({ length: 24 }).map((_, index) => (
+            <span
+              key={index}
+              className="voice-wave-bar"
+              style={{ animationDelay: `${index * 0.05}s` }}
+            />
+          ))}
+        </div>
+      </div>
+    ) : null}
   </div>
 );

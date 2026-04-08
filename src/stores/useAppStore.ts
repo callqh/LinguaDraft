@@ -16,6 +16,9 @@ type AppState = {
   models: LocalModel[];
   initializeModels: () => Promise<void>;
   setCurrentSession: (sessionId: string) => void;
+  createSession: () => string;
+  renameSession: (sessionId: string, title: string) => void;
+  deleteSession: (sessionId: string) => "ok" | "blocked-last";
   setInputText: (value: string) => void;
   setTranslationEnabled: (value: boolean) => void;
   setTargetLang: (value: string) => void;
@@ -117,6 +120,42 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setCurrentSession: (sessionId) => set({ currentSessionId: sessionId }),
+  createSession: () => {
+    const id = `s-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`;
+    const nowIso = new Date().toISOString();
+    const newSession: Session = {
+      id,
+      title: "未命名写作",
+      createdAt: nowIso,
+      updatedAt: nowIso,
+      records: [],
+    };
+    set((state) => ({
+      sessions: [newSession, ...state.sessions],
+      currentSessionId: id,
+    }));
+    return id;
+  },
+  renameSession: (sessionId, title) => {
+    const nextTitle = title.trim();
+    if (!nextTitle) return;
+    set((state) => ({
+      sessions: state.sessions.map((session) =>
+        session.id === sessionId
+          ? { ...session, title: nextTitle, updatedAt: new Date().toISOString() }
+          : session,
+      ),
+    }));
+  },
+  deleteSession: (sessionId) => {
+    const { sessions, currentSessionId } = get();
+    if (sessions.length <= 1) return "blocked-last";
+    const remain = sessions.filter((session) => session.id !== sessionId);
+    const nextCurrent =
+      currentSessionId === sessionId ? remain[0]?.id ?? currentSessionId : currentSessionId;
+    set({ sessions: remain, currentSessionId: nextCurrent });
+    return "ok";
+  },
   setInputText: (value) => set({ inputText: value }),
   setTranslationEnabled: (value) => set({ translationEnabled: value }),
   setTargetLang: (value) => set({ targetLang: value }),

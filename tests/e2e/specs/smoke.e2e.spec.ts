@@ -23,5 +23,23 @@ test.describe("应用基础", () => {
 
     await app.close();
   });
-});
 
+  test("会话支持新建、重命名、删除", async () => {
+    const { app, window } = await launchApp();
+
+    const beforeCount = await window.locator("[data-testid^='session-item-']").count();
+    await window.getByTestId("session-create").click();
+    await expect(window.locator("[data-testid^='session-item-']")).toHaveCount(beforeCount + 1);
+
+    await window.getByTestId("session-rename-s-2").click();
+    await window.getByTestId("session-title-input-s-2").fill("需求文档（已改名）");
+    await window.getByTestId("session-rename-confirm-s-2").click();
+    await expect(window.getByText("需求文档（已改名）")).toBeVisible();
+
+    await window.getByTestId("session-delete-s-3").click();
+    await window.getByRole("button", { name: "删除" }).click();
+    await expect(window.getByTestId("session-item-s-3")).toHaveCount(0);
+
+    await app.close();
+  });
+});

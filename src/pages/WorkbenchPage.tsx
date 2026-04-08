@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { InputComposer } from "@/components/InputComposer";
 import { RecordCard } from "@/components/RecordCard";
+import { TopStatusBar } from "@/components/TopStatusBar";
 import { useAppStore } from "@/stores/useAppStore";
 import { useUiStore } from "@/stores/useUiStore";
 
@@ -10,6 +11,7 @@ export const WorkbenchPage = () => {
   const inputText = useAppStore((state) => state.inputText);
   const setInputText = useAppStore((state) => state.setInputText);
   const translationEnabled = useAppStore((state) => state.translationEnabled);
+  const detectedSourceLang = useAppStore((state) => state.detectedSourceLang);
   const setTranslationEnabled = useAppStore(
     (state) => state.setTranslationEnabled,
   );
@@ -25,6 +27,7 @@ export const WorkbenchPage = () => {
   );
   const openDialog = useUiStore((state) => state.openDialog);
   const showToast = useUiStore((state) => state.showToast);
+  const records = currentSession?.records ?? [];
 
   const openModelDialog = (lang: string) => {
     openDialog({
@@ -78,11 +81,17 @@ export const WorkbenchPage = () => {
 
   return (
     <div className="h-full grid grid-rows-[auto_1fr_auto] gap-3">
+      <TopStatusBar
+        title={currentSession?.title ?? "未命名写作"}
+        detectedLang={detectedSourceLang}
+        translationEnabled={translationEnabled}
+        targetLang={targetLang}
+      />
       <div className="grid grid-cols-1fr min-h-0">
         <div className="panel p-3 min-h-0 flex flex-col gap-3">
           <div className="flex-1 min-h-0 overflow-auto space-y-3 pr-1">
-            {currentSession?.records?.length ? (
-              currentSession?.records.map((record) => (
+            {records.length > 0 ? (
+              records.map((record) => (
                 <RecordCard
                   key={record.id}
                   record={record}
