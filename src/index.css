@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #1f2937;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.panel {
+  @apply bg-panel border border-borderSoft rounded-xl2 shadow-card;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium transition;
+}
+
+.btn-primary {
+  @apply btn bg-accent text-white hover:opacity-95;
+}
+
+.btn-ghost {
+  @apply btn bg-white text-textMain border border-borderSoft hover:bg-slate-50;
+}
+

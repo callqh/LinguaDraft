@@ -1,0 +1,35 @@
+{
+  "name": "lingua-draft",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.12.3",
+  "description": "离线写作翻译工具 MVP（Electron + React + Vite）",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"tsc -p electron/tsconfig.json --watch\" \"wait-on tcp:5173 file:dist-electron/main.js && electron .\"",
+    "build": "tsc -b && vite build && tsc -p electron/tsconfig.json",
+    "preview": "vite preview",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.0",
+    "zustand": "^5.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.3",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.5.2",
+    "autoprefixer": "^10.4.21",
+    "concurrently": "^9.1.2",
+    "electron": "35.7.5",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.5",
+    "wait-on": "^8.0.3"
+  }
+}

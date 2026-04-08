@@ -1,0 +1,10 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { useState } from "react";
+import { formatClock } from "@/utils/format";
+import { SourceBlock } from "@/components/SourceBlock";
+import { TranslationBlock } from "@/components/TranslationBlock";
+import { languageOptions } from "@/mock/data";
+export const RecordCard = ({ record, onRetranslate }) => {
+    const [targetLang, setTargetLang] = useState(record.targetLang ?? "英文");
+    return (_jsxs("article", { className: "panel p-4", children: [_jsxs("div", { className: "mb-3 flex items-center justify-between text-xs text-textMuted", children: [_jsxs("div", { className: "flex items-center gap-3", children: [_jsx("span", { children: formatClock(record.createdAt) }), _jsxs("span", { children: ["\u6E90\u8BED\u8A00\uFF1A", record.sourceLang] }), record.targetLang && _jsxs("span", { children: ["\u76EE\u6807\u8BED\u8A00\uFF1A", record.targetLang] })] }), _jsxs("span", { className: "text-textMuted", children: ["\u7FFB\u8BD1\u72B6\u6001\uFF1A", record.translationStatus] })] }), _jsxs("div", { className: "grid grid-cols-2 gap-3", children: [_jsx(SourceBlock, { text: record.sourceText }), _jsx(TranslationBlock, { text: record.translatedText, status: record.translationStatus })] }), _jsxs("div", { className: "mt-3 flex items-center gap-2", children: [_jsx("button", { className: "btn-ghost text-xs", onClick: () => void navigator.clipboard.writeText(record.sourceText), children: "\u590D\u5236\u539F\u6587" }), _jsx("button", { className: "btn-ghost text-xs", onClick: () => void navigator.clipboard.writeText(record.translatedText ?? ""), disabled: !record.translatedText, children: "\u590D\u5236\u8BD1\u6587" }), _jsx("select", { value: targetLang, onChange: (event) => setTargetLang(event.target.value), className: "h-9 rounded-xl border border-borderSoft px-2 text-sm", children: languageOptions.map((item) => (_jsx("option", { value: item.label, children: item.label }, item.code))) }), _jsx("button", { className: "btn-ghost text-xs", onClick: () => onRetranslate(record.id, targetLang), children: "\u91CD\u65B0\u7FFB\u8BD1" })] })] }));
+};
