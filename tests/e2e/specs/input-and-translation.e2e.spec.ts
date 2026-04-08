@@ -23,9 +23,9 @@ test.describe("输入与翻译", () => {
     await window.getByTestId("input-composer-submit").click();
 
     const latestCard = window.getByTestId("record-card").first();
-    await expect(latestCard.getByText("源语言：英文")).toBeVisible();
-    await expect(latestCard.getByText("目标语言：中文")).toBeVisible();
-    await expect(latestCard.getByText("翻译状态：success")).toBeVisible();
+    await expect(latestCard).toHaveAttribute("data-source-lang", "英文");
+    await expect(latestCard).toHaveAttribute("data-target-lang", "中文");
+    await expect(latestCard).toHaveAttribute("data-translation-status", "success");
 
     await app.close();
   });
@@ -40,7 +40,7 @@ test.describe("输入与翻译", () => {
 
     const latestCard = window.getByTestId("record-card").first();
     const translated = latestCard.getByTestId("translation-content");
-    await expect(latestCard.getByText("翻译状态：success")).toBeVisible();
+    await expect(latestCard).toHaveAttribute("data-translation-status", "success");
     await expect(translated).not.toContainText(input);
     await expect(translated).toContainText(/[A-Za-z]/);
     await expect(translated).not.toContainText(/[\u4e00-\u9fff]{2,}/);
@@ -58,7 +58,7 @@ test.describe("输入与翻译", () => {
 
     const latestCard = window.getByTestId("record-card").first();
     const translated = latestCard.getByTestId("translation-content");
-    await expect(latestCard.getByText("翻译状态：success")).toBeVisible();
+    await expect(latestCard).toHaveAttribute("data-translation-status", "success");
     await expect(translated).not.toContainText(input);
     await expect(translated).toContainText(/[\u4e00-\u9fff]/);
 
@@ -78,7 +78,7 @@ test.describe("输入与翻译", () => {
 
     const latestCard = window.getByTestId("record-card").first();
     const translated = latestCard.getByTestId("translation-content");
-    await expect(latestCard.getByText("翻译状态：success")).toBeVisible();
+    await expect(latestCard).toHaveAttribute("data-translation-status", "success");
 
     const text = ((await translated.textContent()) || "").trim();
     expect(text.length).toBeGreaterThan(0);
@@ -104,7 +104,7 @@ test.describe("输入与翻译", () => {
     await window.getByTestId("input-composer-submit").click();
 
     const latestCard = window.getByTestId("record-card").first();
-    await expect(latestCard.getByText("翻译状态：success")).toBeVisible();
+    await expect(latestCard).toHaveAttribute("data-translation-status", "success");
 
     const text = ((await latestCard.getByTestId("translation-content").textContent()) || "").trim();
     expect(text.length).toBeGreaterThan(0);
@@ -132,13 +132,13 @@ test.describe("输入与翻译", () => {
     await window.getByTestId(`record-retranslate-${recordId}`).click();
 
     await expect(window.getByTestId("record-card")).toHaveCount(cardCountBefore);
-    await expect(window.getByTestId("record-card").first().getByText("目标语言：中文")).toBeVisible();
-    await expect(window.getByTestId("record-card").first().getByText("翻译状态：success")).toBeVisible();
+    await expect(window.getByTestId("record-card").first()).toHaveAttribute("data-target-lang", "中文");
+    await expect(window.getByTestId("record-card").first()).toHaveAttribute("data-translation-status", "success");
 
     await app.close();
   });
 
-  test("输入框支持 Enter 提交，Shift+Enter 换行", async () => {
+  test("输入框支持 Cmd+Enter 提交，Enter 换行", async () => {
     const { app, window } = await launchApp();
 
     await expect(window.getByTestId("record-card").first()).toBeVisible();
@@ -146,11 +146,11 @@ test.describe("输入与翻译", () => {
     const inputBox = window.getByTestId("input-composer-textarea");
 
     await inputBox.fill("第一行");
-    await inputBox.press("Shift+Enter");
+    await inputBox.press("Enter");
     await inputBox.type("第二行");
     await expect(inputBox).toHaveValue("第一行\n第二行");
 
-    await inputBox.press("Enter");
+    await inputBox.press("Meta+Enter");
     await expect(window.getByTestId("record-card")).toHaveCount(beforeCount + 1);
     await expect(window.getByTestId("record-card").first()).toContainText("第一行");
     await expect(window.getByTestId("record-card").first()).toContainText("第二行");

@@ -32,7 +32,7 @@ export const InputComposer = ({
       value={inputText}
       onChange={(event) => onChange(event.target.value)}
       onKeyDown={(event) => {
-        if (event.key === "Enter" && !event.shiftKey) {
+        if (event.key === "Enter" && event.metaKey) {
           event.preventDefault();
           onSubmit();
         }
@@ -43,7 +43,7 @@ export const InputComposer = ({
     <div className="mt-3 flex items-center justify-between">
       <div className="flex items-center gap-2">
         <VoiceControlButton state={recordingState} onClick={onVoiceClick} />
-        <span className="text-xs text-textMuted">快捷键：Ctrl/Cmd + Tab，Enter 提交，Shift+Enter 换行</span>
+        <span className="text-xs text-textMuted">快捷键：Ctrl/Cmd + Tab，Cmd + Enter 提交，Enter 换行</span>
       </div>
       <div className="flex items-center gap-3">
         <TranslationToggle checked={translationEnabled} onChange={onTranslationToggle} />

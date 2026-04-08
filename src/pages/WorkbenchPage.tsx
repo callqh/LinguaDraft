@@ -27,6 +27,9 @@ export const WorkbenchPage = () => {
   );
   const openDialog = useUiStore((state) => state.openDialog);
   const showToast = useUiStore((state) => state.showToast);
+  const sidebarPinned = useUiStore((state) => state.sidebarPinned);
+  const setSidebarPinned = useUiStore((state) => state.setSidebarPinned);
+  const setSidebarPeek = useUiStore((state) => state.setSidebarPeek);
   const records = currentSession?.records ?? [];
 
   const openModelDialog = (lang: string) => {
@@ -86,16 +89,26 @@ export const WorkbenchPage = () => {
         detectedLang={detectedSourceLang}
         translationEnabled={translationEnabled}
         targetLang={targetLang}
+        sidebarPinned={sidebarPinned}
+        onToggleSidebarPinned={() => {
+          const next = !sidebarPinned;
+          setSidebarPinned(next);
+          if (next) setSidebarPeek(false);
+        }}
+        onSidebarTriggerHover={(value) => {
+          if (!sidebarPinned) setSidebarPeek(value);
+        }}
       />
       <div className="grid grid-cols-1fr min-h-0">
-        <div className="panel p-3 min-h-0 flex flex-col gap-3">
-          <div className="flex-1 min-h-0 overflow-auto space-y-3 pr-1">
+        <div className="panel min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 overflow-auto space-y-1 p-3 pr-2">
             {records.length > 0 ? (
               records.map((record) => (
                 <RecordCard
                   key={record.id}
                   record={record}
                   onRetranslate={onRetranslate}
+                  onNotify={showToast}
                 />
               ))
             ) : (

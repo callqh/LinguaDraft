@@ -10,8 +10,10 @@ const menu = [
 export const AppSidebar = () => (
   <aside className="panel h-full p-4 flex flex-col">
     <div className="mb-4">
-      <div className="text-lg font-semibold">写译 · 本地</div>
-      <div className="text-xs text-textMuted">离线写作翻译工具</div>
+      <div>
+        <div className="text-lg font-semibold">写译 · 本地</div>
+        <div className="text-xs text-textMuted">离线写作翻译工具</div>
+      </div>
     </div>
     <nav className="space-y-2 mb-5">
       {menu.map((item) => (
@@ -35,4 +37,3 @@ export const AppSidebar = () => (
     </div>
   </aside>
 );
-
