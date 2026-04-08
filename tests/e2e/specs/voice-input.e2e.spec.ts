@@ -20,7 +20,7 @@ test.describe("语音输入", () => {
     await expect(window.getByRole("button", { name: "停止录音" })).toBeVisible();
     await window.getByRole("button", { name: "停止录音" }).click();
 
-    await expect(input).toHaveValue(/语音输入|转写/);
+    await expect(input).toHaveValue(/^(语音输入测试文本。|这是一条语音输入的测试转写结果。)$/);
     await expect(window.getByText("语音识别完成，已回填输入框")).toBeVisible();
 
     await app.close();

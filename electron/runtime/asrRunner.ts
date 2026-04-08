@@ -6,6 +6,8 @@ import { getModelManager } from "./modelManager";
 import { sidecarClient } from "../sidecar/client";
 
 const MODEL_MARKER = path.join(app.getPath("userData"), "models", "asr-faster-whisper-base", "ready.flag");
+const LONG_RECORDING_THRESHOLD_MS = 3_000;
+const FALLBACK_CONFIDENCE_SCORE = 0.6;
 
 let recording = false;
 let recordingStartedAt = 0;
@@ -13,11 +15,11 @@ let recordingStartedAt = 0;
 const fallbackTranscribe = (): TranscriptionResult => {
   const elapsedMs = recordingStartedAt > 0 ? Date.now() - recordingStartedAt : 0;
   const shortSentence =
-    elapsedMs >= 3_000 ? "这是一条语音输入的测试转写结果。" : "语音输入测试文本。";
+    elapsedMs >= LONG_RECORDING_THRESHOLD_MS ? "这是一条语音输入的测试转写结果。" : "语音输入测试文本。";
   return {
     text: shortSentence,
     language: "中文",
-    confidence: 0.6,
+    confidence: FALLBACK_CONFIDENCE_SCORE,
   };
 };
 
