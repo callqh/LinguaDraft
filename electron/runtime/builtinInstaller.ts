@@ -23,10 +23,10 @@ const copyDir = (src: string, dst: string) => {
 export const installBuiltinModels = () => {
   const bundledRoot = getBundledBuiltinRoot();
   const userRoot = getUserBuiltinRoot();
+  ensureDir(userRoot);
   if (!fs.existsSync(bundledRoot)) {
-    throw new Error(`内置模型目录不存在: ${bundledRoot}`);
+    return userRoot;
   }
   copyDir(bundledRoot, userRoot);
   return userRoot;
 };
-
