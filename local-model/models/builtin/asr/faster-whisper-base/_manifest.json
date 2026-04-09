@@ -1,0 +1,10 @@
+{
+  "repo": "Systran/faster-whisper-base",
+  "downloaded_at": 1775713415,
+  "files": [
+    "config.json",
+    "model.bin",
+    "tokenizer.json",
+    "vocabulary.txt"
+  ]
+}

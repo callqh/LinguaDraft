@@ -13,6 +13,14 @@ export const getBundledBuiltinRoot = () => {
   ]);
 };
 
+export const getBundledManifestRoot = () => {
+  const appPath = app.getAppPath();
+  return firstExisting([
+    path.join(appPath, "local-model", "manifest"),
+    path.join(process.resourcesPath, "local-model", "manifest"),
+    path.join(process.resourcesPath, "app.asar.unpacked", "local-model", "manifest")
+  ]);
+};
+
 export const getUserModelRoot = () => path.join(app.getPath("userData"), "models");
 export const getUserBuiltinRoot = () => path.join(getUserModelRoot(), "builtin");
-

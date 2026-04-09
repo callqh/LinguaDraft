@@ -3,6 +3,7 @@ import { asrRunner } from "../runtime/asrRunner";
 import { lidRunner } from "../runtime/lidRunner";
 import { getModelManager } from "../runtime/modelManager";
 import { translationRunner } from "../runtime/translationRunner";
+import { getSidecarDiagnostics } from "../sidecar/processManager";
 
 export const registerIpcHandlers = () => {
   const modelManager = getModelManager();
@@ -28,4 +29,5 @@ export const registerIpcHandlers = () => {
   ipcMain.handle("translation:run", async (_event, text: string, targetLang: string) =>
     translationRunner.translate(text, targetLang)
   );
+  ipcMain.handle("sidecar:diagnose", async () => getSidecarDiagnostics());
 };

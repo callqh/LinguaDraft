@@ -46,7 +46,7 @@ export const asrRunner = {
         throw new Error("未检测到可用音频，请先录音或检查 demo.wav");
       }
       if (message.includes("sidecar-not-ready")) {
-        throw new Error("语音服务未就绪，请先执行 pnpm setup:sidecar");
+        throw new Error("语音服务未就绪，请重启应用后重试");
       }
       throw new Error(`语音识别失败：${message}`);
     }

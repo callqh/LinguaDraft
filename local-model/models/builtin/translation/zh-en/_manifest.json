@@ -1,0 +1,14 @@
+{
+  "repo": "gaudi/opus-mt-zh-en-ctranslate2",
+  "downloaded_at": 1775713530,
+  "files": [
+    "config.json",
+    "generation_config.json",
+    "model.bin",
+    "shared_vocabulary.json",
+    "source.spm",
+    "target.spm",
+    "tokenizer_config.json",
+    "vocab.json"
+  ]
+}

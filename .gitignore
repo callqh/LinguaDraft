@@ -1,8 +1,9 @@
 dist
 dist-electron
+release
 node_modules
 test-results
-local-model/models
 services/ai-sidecar/.venv
 services/ai-sidecar/__pycache__
 *.pyc
+local-model/models/**/model.bin

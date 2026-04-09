@@ -1,36 +1,14 @@
 import type { LanguageDetection } from "./types";
 
-const fromFrancCode = (code: string) => {
-  switch (code) {
-    case "cmn":
-    case "zho":
-      return "中文";
-    case "eng":
-      return "英文";
-    case "jpn":
-      return "日文";
-    case "kor":
-      return "韩文";
-    case "fra":
-      return "法文";
-    case "deu":
-      return "德文";
-    case "rus":
-      return "俄文";
-    case "spa":
-      return "西班牙文";
-    case "ita":
-      return "意大利文";
-    default:
-      return "unknown";
-  }
-};
-
 const heuristicDetect = (text: string) => {
-  if (/[\u3040-\u30ff]/.test(text)) return "日文";
-  if (/[\uac00-\ud7af]/.test(text)) return "韩文";
-  if (/[\u4e00-\u9fff]/.test(text)) return "中文";
-  if (/[a-zA-Z]/.test(text)) return "英文";
+  const zhCount = (text.match(/[\u4e00-\u9fff]/g) ?? []).length;
+  const jaCount = (text.match(/[\u3040-\u30ff]/g) ?? []).length;
+  const koCount = (text.match(/[\uac00-\ud7af]/g) ?? []).length;
+  const latinCount = (text.match(/[a-zA-Z]/g) ?? []).length;
+  if (jaCount >= 1) return "日文";
+  if (koCount >= 1) return "韩文";
+  if (zhCount >= 1) return "中文";
+  if (latinCount >= 2) return "英文";
   return "unknown";
 };
 
@@ -39,14 +17,6 @@ export const lidRunner = {
     const trimmed = text.trim();
     if (!trimmed) return { language: "unknown", confidence: 0 };
 
-    const { franc } = await import("franc");
-    const code = franc(trimmed, { minLength: 3 });
-    const mapped = fromFrancCode(code);
-
-    if (mapped !== "unknown") {
-      return { language: mapped, confidence: 0.85 };
-    }
-
     const heuristic = heuristicDetect(trimmed);
     return {
       language: heuristic,
@@ -54,4 +24,3 @@ export const lidRunner = {
     };
   }
 };
-

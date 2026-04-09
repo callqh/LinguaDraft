@@ -28,6 +28,20 @@ declare global {
         detect: (text: string) => Promise<{ language: string; confidence: number }>;
         translate: (text: string, targetLang: string) => Promise<string>;
       };
+      sidecar: {
+        diagnose: () => Promise<{
+          selectedPython: string;
+          pythonSource: "bundled" | "runtime-venv" | "system" | "unknown";
+          depsReady: boolean;
+          sidecarEntry: string;
+          requirementsPath: string;
+          runtimeVenvRoot: string;
+          modelRoot: string;
+          healthReason?: string;
+          lastError?: string;
+          ready: boolean;
+        }>;
+      };
     };
   }
 }

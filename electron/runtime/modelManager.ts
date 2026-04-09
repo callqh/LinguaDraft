@@ -4,7 +4,7 @@ import * as path from "node:path";
 import * as fsp from "node:fs/promises";
 import type { LocalModel } from "./types";
 import { installBuiltinModels } from "./builtinInstaller";
-import { getUserBuiltinRoot } from "./modelPaths";
+import { getBundledManifestRoot, getUserBuiltinRoot } from "./modelPaths";
 
 type PersistState = {
   models: Record<string, Pick<LocalModel, "status" | "progress">>;
@@ -31,7 +31,7 @@ export class ModelManager {
   private tasks = new Map<string, AbortController>();
 
   constructor() {
-    this.modelRoot = path.join(app.getAppPath(), "local-model", "manifest");
+    this.modelRoot = getBundledManifestRoot();
     this.modelFileRoot = getUserBuiltinRoot();
     this.statePath = path.join(app.getPath("userData"), "model-state.json");
     ensureDir(this.modelFileRoot);
@@ -48,8 +48,18 @@ export class ModelManager {
   }
 
   private modelFullyInstalled(model: LocalModel) {
-    if (model.builtIn) return true;
-    if (!model.routes || model.routes.length === 0) return false;
+    if (model.type === "asr") {
+      const asrModelBin = path.join(
+        this.modelFileRoot,
+        "asr",
+        "faster-whisper-base",
+        "model.bin",
+      );
+      return fs.existsSync(asrModelBin);
+    }
+    if (!model.routes || model.routes.length === 0) {
+      return Boolean(model.builtIn);
+    }
     return model.routes.every((route) => this.routeInstalled(route));
   }
 
@@ -77,8 +87,8 @@ export class ModelManager {
       }
       return {
         ...model,
-        status: runtimeInstalled || model.builtIn ? "installed" : "not_installed",
-        progress: runtimeInstalled || model.builtIn ? 100 : 0,
+        status: runtimeInstalled ? "installed" : "not_installed",
+        progress: runtimeInstalled ? 100 : 0,
       } as LocalModel;
     });
 

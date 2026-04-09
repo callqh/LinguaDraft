@@ -23,5 +23,8 @@ contextBridge.exposeInMainWorld("linguaDraft", {
   translation: {
     detect: (text: string) => ipcRenderer.invoke("translation:detect", text),
     translate: (text: string, targetLang: string) => ipcRenderer.invoke("translation:run", text, targetLang)
+  },
+  sidecar: {
+    diagnose: () => ipcRenderer.invoke("sidecar:diagnose"),
   }
 });

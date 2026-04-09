@@ -1,37 +1,23 @@
-import { franc } from "franc";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 
-const mapFranc = (code: string) => {
-  switch (code) {
-    case "cmn":
-    case "zho":
-      return "中文";
-    case "eng":
-      return "英文";
-    case "jpn":
-      return "日文";
-    case "kor":
-      return "韩文";
-    case "fra":
-      return "法文";
-    case "deu":
-      return "德文";
-    case "rus":
-      return "俄文";
-    case "spa":
-      return "西班牙文";
-    case "ita":
-      return "意大利文";
-    default:
-      return "unknown";
-  }
-};
-
 const heuristicDetect = (text: string) => {
-  if (/[\u3040-\u30ff]/.test(text)) return "日文";
-  if (/[\uac00-\ud7af]/.test(text)) return "韩文";
-  if (/[\u4e00-\u9fff]/.test(text)) return "中文";
-  if (/[a-zA-Z]/.test(text)) return "英文";
+  const trimmed = text.trim();
+  if (!trimmed) return "unknown";
+
+  const zhCount = (trimmed.match(/[\u4e00-\u9fff]/g) ?? []).length;
+  const jaKanaCount = (trimmed.match(/[\u3040-\u30ff]/g) ?? []).length;
+  const koCount = (trimmed.match(/[\uac00-\ud7af]/g) ?? []).length;
+  const latinCount = (trimmed.match(/[A-Za-z]/g) ?? []).length;
+
+  if (jaKanaCount >= 1) return "日文";
+  if (koCount >= 1) return "韩文";
+  if (zhCount >= 1) return "中文";
+
+  if (latinCount >= 2) {
+    // MVP 阶段：拉丁字母统一视为英文输入，交由翻译流程处理。
+    return "英文";
+  }
+
   return "unknown";
 };
 
@@ -206,10 +192,7 @@ const translateByDeepSeekStream = async (
 
 export const translationService = {
   async detectLanguage(text: string) {
-    const trimmed = text.trim();
-    const code = franc(trimmed, { minLength: 3 });
-    let language = mapFranc(code);
-    if (language === "unknown") language = heuristicDetect(trimmed);
+    const language = heuristicDetect(text);
 
     if (language === "unknown") {
       throw new Error("语种识别失败，请输入更完整的句子");

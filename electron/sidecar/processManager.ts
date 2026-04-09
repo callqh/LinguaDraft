@@ -1,6 +1,7 @@
 import { app } from "electron";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { execSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import * as path from "node:path";
 import * as fs from "node:fs";
 import { getUserBuiltinRoot } from "../runtime/modelPaths";
@@ -11,13 +12,149 @@ const HEALTH_URL = `http://127.0.0.1:${SIDECAR_PORT}/health`;
 let sidecarProcess: ChildProcessWithoutNullStreams | null = null;
 let ready = false;
 
+type SidecarDiagnostics = {
+  selectedPython: string;
+  pythonSource: "bundled" | "runtime-venv" | "system" | "unknown";
+  depsReady: boolean;
+  sidecarEntry: string;
+  requirementsPath: string;
+  runtimeVenvRoot: string;
+  modelRoot: string;
+  healthReason?: string;
+  lastError?: string;
+  ready: boolean;
+};
+
+const diagnostics: SidecarDiagnostics = {
+  selectedPython: "",
+  pythonSource: "unknown",
+  depsReady: false,
+  sidecarEntry: "",
+  requirementsPath: "",
+  runtimeVenvRoot: "",
+  modelRoot: "",
+  ready: false,
+};
+
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+const firstExisting = (candidates: string[]) =>
+  candidates.find((p) => fs.existsSync(p)) ?? candidates[0];
+
+const isWindows = process.platform === "win32";
+
+const getRuntimeVenvRoot = () => path.join(app.getPath("userData"), "sidecar-venv");
+
+const getRuntimeVenvPython = () =>
+  isWindows
+    ? path.join(getRuntimeVenvRoot(), "Scripts", "python.exe")
+    : path.join(getRuntimeVenvRoot(), "bin", "python");
+
+const getBundledRequirements = () =>
+  firstExisting([
+    path.join(app.getAppPath(), "services", "ai-sidecar", "requirements.txt"),
+    path.join(process.resourcesPath, "services", "ai-sidecar", "requirements.txt"),
+    path.join(
+      process.resourcesPath,
+      "app.asar.unpacked",
+      "services",
+      "ai-sidecar",
+      "requirements.txt",
+    ),
+  ]);
+
+const canRunPython = (pythonCmd: string) => {
+  const r = spawnSync(pythonCmd, ["-c", "import sys; print(sys.version)"], {
+    stdio: "ignore",
+    timeout: 8000,
+  });
+  return r.status === 0;
+};
+
+const canImportSidecarDeps = (pythonCmd: string) => {
+  const r = spawnSync(
+    pythonCmd,
+    [
+      "-c",
+      "import fastapi,uvicorn,faster_whisper,ctranslate2,sentencepiece,opencc; print('ok')",
+    ],
+    {
+      stdio: "ignore",
+      timeout: 12000,
+    },
+  );
+  return r.status === 0;
+};
 
 const findPython = () => {
   const appPath = app.getAppPath();
-  const venvPy = path.join(appPath, "services", "ai-sidecar", ".venv", "bin", "python");
+  const venvPy = firstExisting([
+    path.join(appPath, "services", "ai-sidecar", ".venv", "bin", "python"),
+    path.join(appPath, "services", "ai-sidecar", ".venv", "Scripts", "python.exe"),
+    path.join(process.resourcesPath, "services", "ai-sidecar", ".venv", "bin", "python"),
+    path.join(process.resourcesPath, "services", "ai-sidecar", ".venv", "Scripts", "python.exe"),
+    path.join(process.resourcesPath, "app.asar.unpacked", "services", "ai-sidecar", ".venv", "bin", "python"),
+    path.join(process.resourcesPath, "app.asar.unpacked", "services", "ai-sidecar", ".venv", "Scripts", "python.exe"),
+  ]);
   const candidates = [venvPy, "python3", "python"];
   return candidates.find((bin) => bin.includes("/") ? fs.existsSync(bin) : true) ?? "python3";
+};
+
+const ensureRuntimePython = () => {
+  diagnostics.requirementsPath = getBundledRequirements();
+  diagnostics.runtimeVenvRoot = getRuntimeVenvRoot();
+  const bundled = findPython();
+  const bundledReady = canRunPython(bundled) && canImportSidecarDeps(bundled);
+  if (bundledReady) {
+    diagnostics.selectedPython = bundled;
+    diagnostics.pythonSource = bundled.includes("sidecar-venv")
+      ? "runtime-venv"
+      : bundled.includes("python")
+        ? "bundled"
+        : "unknown";
+    diagnostics.depsReady = true;
+    return bundled;
+  }
+
+  const req = diagnostics.requirementsPath;
+  if (!fs.existsSync(req)) return bundled;
+
+  const systemPython = ["python3", "python"].find((cmd) => canRunPython(cmd));
+  if (!systemPython) {
+    diagnostics.selectedPython = bundled;
+    diagnostics.pythonSource = bundled.includes("python") ? "bundled" : "unknown";
+    diagnostics.depsReady = false;
+    return bundled;
+  }
+
+  const venvRoot = getRuntimeVenvRoot();
+  if (!fs.existsSync(venvRoot)) {
+    fs.mkdirSync(venvRoot, { recursive: true });
+    const r = spawnSync(systemPython, ["-m", "venv", venvRoot], {
+      stdio: "inherit",
+      timeout: 240000,
+    });
+    if (r.status !== 0) return bundled;
+  }
+
+  const runtimePython = getRuntimeVenvPython();
+  if (!fs.existsSync(runtimePython)) return bundled;
+
+  if (!canImportSidecarDeps(runtimePython)) {
+    const pipInstall = spawnSync(
+      runtimePython,
+      ["-m", "pip", "install", "-r", req],
+      {
+        stdio: "inherit",
+        timeout: 600000,
+      },
+    );
+    if (pipInstall.status !== 0) return bundled;
+  }
+  diagnostics.selectedPython = runtimePython;
+  diagnostics.pythonSource = "runtime-venv";
+  diagnostics.depsReady = true;
+  return runtimePython;
 };
 
 type HealthPayload = {
@@ -76,8 +213,10 @@ const killOccupantOnPort = () => {
 export const startSidecar = async () => {
   if (ready) return true;
   const health = await checkHealth();
+  diagnostics.healthReason = health.reason;
   if (health.ok) {
     ready = true;
+    diagnostics.ready = true;
     return true;
   }
   if (health.reason === "asr-not-ready" || health.reason === "model-root-mismatch") {
@@ -85,10 +224,20 @@ export const startSidecar = async () => {
     await wait(250);
   }
 
-  const sidecarEntry = path.join(app.getAppPath(), "services", "ai-sidecar", "app", "main.py");
+  const sidecarEntry = firstExisting([
+    path.join(app.getAppPath(), "services", "ai-sidecar", "app", "main.py"),
+    path.join(process.resourcesPath, "services", "ai-sidecar", "app", "main.py"),
+    path.join(process.resourcesPath, "app.asar.unpacked", "services", "ai-sidecar", "app", "main.py"),
+  ]);
   if (!fs.existsSync(sidecarEntry)) return false;
+  diagnostics.sidecarEntry = sidecarEntry;
+  diagnostics.modelRoot = getUserBuiltinRoot();
 
-  const python = findPython();
+  const python = ensureRuntimePython();
+  diagnostics.selectedPython = python;
+  process.stdout.write(
+    `[sidecar-diagnose] python=${diagnostics.selectedPython} source=${diagnostics.pythonSource} depsReady=${diagnostics.depsReady} entry=${diagnostics.sidecarEntry} modelRoot=${diagnostics.modelRoot}\n`,
+  );
   sidecarProcess = spawn(python, [sidecarEntry, "--port", `${SIDECAR_PORT}`], {
     cwd: app.getAppPath(),
     env: { ...process.env, PYTHONUNBUFFERED: "1", LINGUA_MODEL_ROOT: getUserBuiltinRoot() }
@@ -102,10 +251,13 @@ export const startSidecar = async () => {
   });
   sidecarProcess.on("error", (error) => {
     process.stderr.write(`[sidecar] spawn error: ${error.message}\n`);
+    diagnostics.lastError = error.message;
+    diagnostics.ready = false;
     ready = false;
     sidecarProcess = null;
   });
   sidecarProcess.on("exit", () => {
+    diagnostics.ready = false;
     ready = false;
     sidecarProcess = null;
   });
@@ -113,10 +265,13 @@ export const startSidecar = async () => {
   for (let i = 0; i < 30; i += 1) {
     if ((await checkHealth()).ok) {
       ready = true;
+      diagnostics.ready = true;
       return true;
     }
     await wait(200);
   }
+  diagnostics.lastError = "sidecar-health-check-timeout";
+  diagnostics.ready = false;
   return false;
 };
 
@@ -131,3 +286,5 @@ export const stopSidecar = () => {
 export const isSidecarReady = () => ready;
 
 export const getSidecarPort = () => SIDECAR_PORT;
+
+export const getSidecarDiagnostics = () => ({ ...diagnostics, ready });
