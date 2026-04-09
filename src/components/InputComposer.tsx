@@ -43,7 +43,7 @@ export const InputComposer = ({
     <div className="mt-3 flex items-center justify-between">
       <div className="flex items-center gap-2">
         <VoiceControlButton state={recordingState} onClick={onVoiceClick} />
-        <span className="text-xs text-textMuted">快捷键：Ctrl/Cmd + Tab，Cmd + Enter 提交，Enter 换行</span>
+        <span className="text-xs text-textMuted">快捷键：Ctrl/Cmd + T 语音录入（再按停止），Cmd + Enter 提交，Enter 换行</span>
       </div>
       <div className="flex items-center gap-3">
         <TranslationToggle checked={translationEnabled} onChange={onTranslationToggle} />
@@ -72,6 +72,10 @@ export const InputComposer = ({
             />
           ))}
         </div>
+      </div>
+    ) : recordingState === "transcribing" ? (
+      <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50/60 px-3 py-2 text-xs text-accent">
+        正在实时识别中，请稍候...
       </div>
     ) : null}
   </div>

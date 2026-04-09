@@ -3,3 +3,5 @@ uvicorn==0.30.6
 faster-whisper==1.0.3
 ctranslate2==4.7.1
 sentencepiece==0.2.0
+requests==2.32.3
+opencc-python-reimplemented==0.1.7

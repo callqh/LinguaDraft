@@ -16,6 +16,10 @@ declare global {
         start: () => Promise<{ status: "recording" }>;
         stop: () => Promise<{ status: "transcribing" | "idle" }>;
         transcribe: () => Promise<{ text: string; language: string; confidence: number }>;
+        transcribeAudio: (
+          raw: ArrayBuffer,
+          extension?: string,
+        ) => Promise<{ text: string; language: string; confidence: number }>;
       };
       language: {
         detect: (text: string) => Promise<{ language: string; confidence: number }>;
@@ -29,4 +33,3 @@ declare global {
 }
 
 export {};
-

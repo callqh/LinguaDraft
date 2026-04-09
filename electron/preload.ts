@@ -13,7 +13,9 @@ contextBridge.exposeInMainWorld("linguaDraft", {
   asr: {
     start: () => ipcRenderer.invoke("asr:start"),
     stop: () => ipcRenderer.invoke("asr:stop"),
-    transcribe: () => ipcRenderer.invoke("asr:transcribe")
+    transcribe: () => ipcRenderer.invoke("asr:transcribe"),
+    transcribeAudio: (raw: ArrayBuffer, extension?: string) =>
+      ipcRenderer.invoke("asr:transcribe-audio", raw, extension),
   },
   language: {
     detect: (text: string) => ipcRenderer.invoke("language:detect", text)

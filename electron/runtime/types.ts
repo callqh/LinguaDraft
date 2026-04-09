@@ -10,6 +10,12 @@ export type LocalModel = {
   progress?: number;
   builtIn?: boolean;
   downloadUrl?: string;
+  routes?: Array<{
+    sourceLang: string;
+    targetLang: string;
+    modelRepo: string;
+    pairCode: string;
+  }>;
 };
 
 export type LanguageDetection = {
@@ -22,4 +28,3 @@ export type TranscriptionResult = {
   language: string;
   confidence: number;
 };
-

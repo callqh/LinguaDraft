@@ -3,64 +3,154 @@
     "id": "tr-ja",
     "type": "translation",
     "language": "日文",
-    "version": "v1.0.0",
-    "size": 0.26,
+    "version": "opus-mt ctranslate2",
+    "size": 0.62,
     "builtIn": false,
-    "downloadUrl": "https://example.local/models/tr-ja-v1.zip"
+    "routes": [
+      {
+        "sourceLang": "英文",
+        "targetLang": "日文",
+        "pairCode": "en-ja",
+        "modelRepo": "gaudi/opus-mt-en-ja-ctranslate2"
+      },
+      {
+        "sourceLang": "日文",
+        "targetLang": "英文",
+        "pairCode": "ja-en",
+        "modelRepo": "gaudi/opus-mt-ja-en-ctranslate2"
+      }
+    ]
   },
   {
     "id": "tr-ko",
     "type": "translation",
     "language": "韩文",
-    "version": "v1.0.0",
-    "size": 0.25,
+    "version": "opus-mt ctranslate2",
+    "size": 0.62,
     "builtIn": false,
-    "downloadUrl": "https://example.local/models/tr-ko-v1.zip"
+    "routes": [
+      {
+        "sourceLang": "英文",
+        "targetLang": "韩文",
+        "pairCode": "en-ko",
+        "modelRepo": "gaudi/opus-mt-en-ko-ctranslate2"
+      },
+      {
+        "sourceLang": "韩文",
+        "targetLang": "英文",
+        "pairCode": "ko-en",
+        "modelRepo": "gaudi/opus-mt-ko-en-ctranslate2"
+      }
+    ]
   },
   {
     "id": "tr-fr",
     "type": "translation",
     "language": "法文",
-    "version": "v1.0.0",
-    "size": 0.29,
+    "version": "opus-mt ctranslate2",
+    "size": 0.62,
     "builtIn": false,
-    "downloadUrl": "https://example.local/models/tr-fr-v1.zip"
+    "routes": [
+      {
+        "sourceLang": "英文",
+        "targetLang": "法文",
+        "pairCode": "en-fr",
+        "modelRepo": "gaudi/opus-mt-en-fr-ctranslate2"
+      },
+      {
+        "sourceLang": "法文",
+        "targetLang": "英文",
+        "pairCode": "fr-en",
+        "modelRepo": "gaudi/opus-mt-fr-en-ctranslate2"
+      }
+    ]
   },
   {
     "id": "tr-de",
     "type": "translation",
     "language": "德文",
-    "version": "v1.0.0",
-    "size": 0.28,
+    "version": "opus-mt ctranslate2",
+    "size": 0.62,
     "builtIn": false,
-    "downloadUrl": "https://example.local/models/tr-de-v1.zip"
+    "routes": [
+      {
+        "sourceLang": "英文",
+        "targetLang": "德文",
+        "pairCode": "en-de",
+        "modelRepo": "gaudi/opus-mt-en-de-ctranslate2"
+      },
+      {
+        "sourceLang": "德文",
+        "targetLang": "英文",
+        "pairCode": "de-en",
+        "modelRepo": "gaudi/opus-mt-de-en-ctranslate2"
+      }
+    ]
   },
   {
     "id": "tr-ru",
     "type": "translation",
     "language": "俄文",
-    "version": "v1.0.0",
-    "size": 0.33,
+    "version": "opus-mt ctranslate2",
+    "size": 0.62,
     "builtIn": false,
-    "downloadUrl": "https://example.local/models/tr-ru-v1.zip"
+    "routes": [
+      {
+        "sourceLang": "英文",
+        "targetLang": "俄文",
+        "pairCode": "en-ru",
+        "modelRepo": "gaudi/opus-mt-en-ru-ctranslate2"
+      },
+      {
+        "sourceLang": "俄文",
+        "targetLang": "英文",
+        "pairCode": "ru-en",
+        "modelRepo": "gaudi/opus-mt-ru-en-ctranslate2"
+      }
+    ]
   },
   {
     "id": "tr-es",
     "type": "translation",
     "language": "西班牙文",
-    "version": "v1.0.0",
-    "size": 0.30,
+    "version": "opus-mt ctranslate2",
+    "size": 0.62,
     "builtIn": false,
-    "downloadUrl": "https://example.local/models/tr-es-v1.zip"
+    "routes": [
+      {
+        "sourceLang": "英文",
+        "targetLang": "西班牙文",
+        "pairCode": "en-es",
+        "modelRepo": "gaudi/opus-mt-en-es-ctranslate2"
+      },
+      {
+        "sourceLang": "西班牙文",
+        "targetLang": "英文",
+        "pairCode": "es-en",
+        "modelRepo": "gaudi/opus-mt-es-en-ctranslate2"
+      }
+    ]
   },
   {
     "id": "tr-it",
     "type": "translation",
     "language": "意大利文",
-    "version": "v1.0.0",
-    "size": 0.31,
+    "version": "opus-mt ctranslate2",
+    "size": 0.62,
     "builtIn": false,
-    "downloadUrl": "https://example.local/models/tr-it-v1.zip"
+    "routes": [
+      {
+        "sourceLang": "英文",
+        "targetLang": "意大利文",
+        "pairCode": "en-it",
+        "modelRepo": "gaudi/opus-mt-en-it-ctranslate2"
+      },
+      {
+        "sourceLang": "意大利文",
+        "targetLang": "英文",
+        "pairCode": "it-en",
+        "modelRepo": "gaudi/opus-mt-it-en-ctranslate2"
+      }
+    ]
   }
 ]
-

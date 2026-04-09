@@ -21,11 +21,9 @@ export const RecordCard = ({ record, onRetranslate, onNotify }: Props) => {
     record.translationStatus === "failed" ||
     Boolean(record.translatedText);
   const translationText =
-    record.translationStatus === "translating"
-      ? "翻译中..."
-      : record.translationStatus === "failed"
+    record.translationStatus === "failed"
         ? "翻译失败"
-        : record.translatedText || "未翻译";
+        : record.translatedText?.trim() || "未翻译";
 
   const handleCopy = async (text: string, successMessage: string) => {
     if (!text) {
@@ -48,7 +46,7 @@ export const RecordCard = ({ record, onRetranslate, onNotify }: Props) => {
       data-translation-status={record.translationStatus}
       className="group relative px-1 py-2"
     >
-      <div className="mb-1 pl-2 text-[11px] text-textMuted/90">
+      <div className="mb-1 ml-auto max-w-[84%] px-1 text-[11px] text-textMuted/90">
         {formatClock(record.createdAt)}
       </div>
 
@@ -102,8 +100,10 @@ export const RecordCard = ({ record, onRetranslate, onNotify }: Props) => {
           <div className="flex items-start justify-between gap-2">
             {record.translationStatus === "translating" ? (
               <span data-testid="translation-content" className="inline-flex items-center">
-                <LoaderCircle size={14} className="mr-1.5 animate-spin text-accent" />
-                {translationText}
+                <span className="whitespace-pre-wrap break-words">
+                  {record.translatedText?.trim() || "翻译中..."}
+                </span>
+                <LoaderCircle size={14} className="ml-1.5 mt-1 shrink-0 animate-spin text-accent" />
               </span>
             ) : record.translationStatus === "failed" ? (
               <span data-testid="translation-content" className="inline-flex items-center text-red-500">
@@ -143,11 +143,7 @@ export const RecordCard = ({ record, onRetranslate, onNotify }: Props) => {
             </span>
           </div>
         </div>
-      ) : (
-        <div className="mt-2 ml-auto max-w-[84%] rounded-2xl rounded-tl-md border border-slate-200 bg-white px-4 py-2 text-xs text-textMuted">
-          未开启翻译
-        </div>
-      )}
+      ) : null}
     </article>
   );
 };

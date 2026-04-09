@@ -20,38 +20,19 @@ const statusText: Record<LocalModel["status"], string> = {
 export const ModelRow = ({ model, onDownload, onPause, onResume, onCancel, onDelete }: Props) => (
   <div className="grid grid-cols-[1.2fr_120px_120px_170px] items-center gap-2 rounded-xl border border-borderSoft bg-white px-3 py-3 text-sm">
     <div>
-      <div className="font-medium">{model.language ?? "中文语音识别"}</div>
+      <div className="font-medium">
+        {model.language ?? "中文语音识别"}
+        {model.builtIn ? <span className="ml-2 text-[11px] text-emerald-600">内置</span> : null}
+      </div>
       <div className="text-xs text-textMuted">{model.version}</div>
     </div>
     <div className="text-textMuted">{statusText[model.status]}</div>
     <div className="text-textMuted">{model.size.toFixed(1)} GB</div>
     <div className="flex items-center justify-end gap-1">
-      {model.status === "not_installed" && (
-        <button className="btn-ghost text-xs" onClick={() => onDownload(model.id)}>
-          下载
-        </button>
-      )}
-      {model.status === "downloading" && (
-        <>
-          <button className="btn-ghost text-xs" onClick={() => onPause(model.id)}>
-            暂停
-          </button>
-          <button className="btn-ghost text-xs" onClick={() => onCancel(model.id)}>
-            取消
-          </button>
-        </>
-      )}
-      {model.status === "paused" && (
-        <button className="btn-ghost text-xs" onClick={() => onResume(model.id)}>
-          继续
-        </button>
-      )}
-      {model.status === "failed" && (
-        <button className="btn-ghost text-xs" onClick={() => onDownload(model.id)}>
-          重试
-        </button>
-      )}
-      {model.status === "installed" && (
+      {!model.builtIn && model.status !== "installed" ? (
+        <span className="text-xs text-textMuted">即将上线，敬请期待</span>
+      ) : null}
+      {model.status === "installed" && !model.builtIn && (
         <button className="btn-ghost text-xs text-red-500" onClick={() => onDelete(model.id)}>
           删除
         </button>
@@ -64,4 +45,3 @@ export const ModelRow = ({ model, onDownload, onPause, onResume, onCancel, onDel
     )}
   </div>
 );
-

@@ -19,6 +19,7 @@ export type LocalModel = {
   status: "not_installed" | "downloading" | "paused" | "installed" | "failed";
   size: number;
   progress?: number;
+  builtIn?: boolean;
 };
 
 export type Session = {

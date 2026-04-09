@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { initialSessions, languageOptions } from "@/mock/data";
 import { modelService } from "@/services/modelService";
+import { useSettingsStore } from "@/stores/useSettingsStore";
 import { translationService } from "@/services/translationService";
 import { voiceService } from "@/services/voiceService";
 import type { LocalModel, RecordingState, RecordItem, Session } from "@/types";
@@ -43,6 +44,12 @@ type AppState = {
     ) => void,
   ) => Promise<"ok" | "missing-model">;
   stopVoiceInput: (
+    notify: (
+      message: string,
+      type?: "info" | "success" | "warning" | "error",
+    ) => void,
+  ) => Promise<void>;
+  cancelVoiceInput: (
     notify: (
       message: string,
       type?: "info" | "success" | "warning" | "error",
@@ -104,6 +111,13 @@ const updateRecordInSession = (
         }
       : session,
   );
+
+const isRemoteTranslationActive = () => {
+  const { deepSeekEnabled, deepSeekApiKey } = useSettingsStore.getState();
+  return deepSeekEnabled && Boolean(deepSeekApiKey.trim());
+};
+
+let voiceInputBaseline = "";
 
 export const useAppStore = create<AppState>((set, get) => ({
   sessions: initialSessions,
@@ -209,25 +223,45 @@ export const useAppStore = create<AppState>((set, get) => ({
       return;
     }
 
-    const model = get().getTranslationModelByLanguage(targetLang);
-    if (!model || model.status !== "installed") {
-      set((state) => ({
-        sessions: updateRecordInSession(
-          state.sessions,
-          currentSessionId,
-          baseRecord.id,
-          (record) => ({
-            ...record,
-            translationStatus: "failed",
-          }),
-        ),
-      }));
-      notify(`${targetLang}模型未安装，请先下载`, "warning");
-      return;
+    if (!isRemoteTranslationActive()) {
+      const model = get().getTranslationModelByLanguage(targetLang);
+      if (!model || model.status !== "installed") {
+        set((state) => ({
+          sessions: updateRecordInSession(
+            state.sessions,
+            currentSessionId,
+            baseRecord.id,
+            (record) => ({
+              ...record,
+              translationStatus: "failed",
+            }),
+          ),
+        }));
+        notify(`${targetLang}模型未安装，请先下载`, "warning");
+        return;
+      }
     }
 
     try {
-      const translated = await translationService.translate(text, targetLang);
+      let translated = "";
+      await translationService.translateStream(text, targetLang, (chunk) => {
+        translated += chunk;
+        set((state) => ({
+          sessions: updateRecordInSession(
+            state.sessions,
+            currentSessionId,
+            baseRecord.id,
+            (record) => ({
+              ...record,
+              translatedText: translated,
+              translationStatus: "translating",
+            }),
+          ),
+        }));
+      });
+      if (!translated.trim()) {
+        throw new Error("翻译返回为空");
+      }
       set((state) => ({
         sessions: updateRecordInSession(
           state.sessions,
@@ -241,7 +275,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         ),
       }));
       notify("翻译完成", "success");
-    } catch {
+    } catch (error) {
       set((state) => ({
         sessions: updateRecordInSession(
           state.sessions,
@@ -253,16 +287,20 @@ export const useAppStore = create<AppState>((set, get) => ({
           }),
         ),
       }));
-      notify("翻译失败，请稍后重试", "error");
+      const message =
+        error instanceof Error ? error.message : "翻译失败，请稍后重试";
+      notify(message, "error");
     }
   },
 
   retranslateRecord: async (recordId, targetLang, notify) => {
     const { currentSessionId, getTranslationModelByLanguage } = get();
-    const model = getTranslationModelByLanguage(targetLang);
-    if (!model || model.status !== "installed") {
-      notify(`${targetLang}模型未安装`, "warning");
-      return "missing-model";
+    if (!isRemoteTranslationActive()) {
+      const model = getTranslationModelByLanguage(targetLang);
+      if (!model || model.status !== "installed") {
+        notify(`${targetLang}模型未安装`, "warning");
+        return "missing-model";
+      }
     }
 
     const session = get().getCurrentSession();
@@ -284,10 +322,30 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
 
     try {
-      const translated = await translationService.translate(
+      let translated = "";
+      await translationService.translateStream(
         record.sourceText,
         targetLang,
+        (chunk) => {
+          translated += chunk;
+          set((state) => ({
+            sessions: updateRecordInSession(
+              state.sessions,
+              currentSessionId,
+              recordId,
+              (item) => ({
+                ...item,
+                targetLang,
+                translatedText: translated,
+                translationStatus: "translating",
+              }),
+            ),
+          }));
+        },
       );
+      if (!translated.trim()) {
+        throw new Error("翻译返回为空");
+      }
       set((state) => ({
         sessions: updateRecordInSession(
           state.sessions,
@@ -303,7 +361,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       }));
       notify("重翻译完成（已覆盖原记录）", "success");
       return "ok";
-    } catch {
+    } catch (error) {
       set((state) => ({
         sessions: updateRecordInSession(
           state.sessions,
@@ -316,21 +374,32 @@ export const useAppStore = create<AppState>((set, get) => ({
           }),
         ),
       }));
-      notify("重翻译失败", "error");
+      const message = error instanceof Error ? error.message : "重翻译失败";
+      notify(message, "error");
       return "ok";
     }
   },
 
   startVoiceInput: async (notify) => {
+    if (!get().isVoiceModelInstalled()) {
+      notify("语音识别模型未安装", "warning");
+      return "missing-model";
+    }
     try {
+      voiceInputBaseline = get().inputText;
+      voiceService.setProgressListener((text) => {
+        set(() => ({
+          inputText: voiceInputBaseline
+            ? `${voiceInputBaseline}\n${text}`
+            : text,
+        }));
+      });
       await voiceService.startRecording();
       set({ recordingState: "recording" });
-      if (!get().isVoiceModelInstalled()) {
-        notify("语音模型未安装，已使用演示转写", "info");
-      }
       return "ok";
-    } catch {
-      notify("无法启动录音", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "无法启动录音";
+      notify(message, "error");
       return "ok";
     }
   },
@@ -340,15 +409,38 @@ export const useAppStore = create<AppState>((set, get) => ({
       await voiceService.stopRecording();
       set({ recordingState: "transcribing" });
       const text = await voiceService.transcribe();
+      voiceService.setProgressListener(null);
       set((state) => ({
         recordingState: "idle",
-        inputText: state.inputText ? `${state.inputText}\n${text}` : text,
+        inputText: voiceInputBaseline ? `${voiceInputBaseline}\n${text}` : text,
       }));
       notify("语音识别完成，已回填输入框", "success");
-    } catch {
+    } catch (error) {
+      voiceService.setProgressListener(null);
       set({ recordingState: "failed" });
-      notify("语音识别失败", "error");
+      const message = error instanceof Error ? error.message : "语音识别失败";
+      notify(message, "error");
       window.setTimeout(() => set({ recordingState: "idle" }), 1000);
+    } finally {
+      voiceInputBaseline = "";
+    }
+  },
+
+  cancelVoiceInput: async (notify) => {
+    let canceled = false;
+    try {
+      await voiceService.cancelRecording();
+      canceled = true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "停止录音失败";
+      notify(message, "error");
+    } finally {
+      voiceService.setProgressListener(null);
+      voiceInputBaseline = "";
+      set({ recordingState: "idle", inputText: "" });
+      if (canceled) {
+        notify("已停止录音并清空输入", "info");
+      }
     }
   },
 

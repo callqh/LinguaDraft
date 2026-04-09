@@ -1,5 +1,6 @@
 import { app } from "electron";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { execSync } from "node:child_process";
 import * as path from "node:path";
 import * as fs from "node:fs";
 import { getUserBuiltinRoot } from "../runtime/modelPaths";
@@ -19,20 +20,69 @@ const findPython = () => {
   return candidates.find((bin) => bin.includes("/") ? fs.existsSync(bin) : true) ?? "python3";
 };
 
-const checkHealth = async () => {
+type HealthPayload = {
+  ok?: boolean;
+  engines?: {
+    faster_whisper?: boolean;
+  };
+  model_root?: string;
+  models?: {
+    asr_ready?: boolean;
+  };
+};
+
+const expectedModelRoot = () => getUserBuiltinRoot();
+
+const checkHealth = async (): Promise<{ ok: boolean; reason?: string }> => {
   try {
     const res = await fetch(HEALTH_URL, { method: "GET" });
-    return res.ok;
+    if (!res.ok) return { ok: false, reason: `http-${res.status}` };
+    const payload = (await res.json()) as HealthPayload;
+    if (!payload.ok) return { ok: false, reason: "payload-not-ok" };
+    if (!payload.engines?.faster_whisper) return { ok: false, reason: "asr-engine-missing" };
+    if (!payload.models?.asr_ready) return { ok: false, reason: "asr-not-ready" };
+    if (payload.model_root && payload.model_root !== expectedModelRoot()) {
+      return { ok: false, reason: "model-root-mismatch" };
+    }
+    return { ok: true };
   } catch {
-    return false;
+    return { ok: false, reason: "unreachable" };
+  }
+};
+
+const killOccupantOnPort = () => {
+  try {
+    const stdout = execSync(`lsof -ti tcp:${SIDECAR_PORT} || true`, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    if (!stdout) return;
+    const pids = stdout
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    for (const pid of pids) {
+      try {
+        process.kill(Number(pid), "SIGTERM");
+      } catch {
+        // ignore
+      }
+    }
+  } catch {
+    // ignore
   }
 };
 
 export const startSidecar = async () => {
   if (ready) return true;
-  if (await checkHealth()) {
+  const health = await checkHealth();
+  if (health.ok) {
     ready = true;
     return true;
+  }
+  if (health.reason === "asr-not-ready" || health.reason === "model-root-mismatch") {
+    killOccupantOnPort();
+    await wait(250);
   }
 
   const sidecarEntry = path.join(app.getAppPath(), "services", "ai-sidecar", "app", "main.py");
@@ -61,7 +111,7 @@ export const startSidecar = async () => {
   });
 
   for (let i = 0; i < 30; i += 1) {
-    if (await checkHealth()) {
+    if ((await checkHealth()).ok) {
       ready = true;
       return true;
     }

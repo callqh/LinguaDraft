@@ -11,16 +11,32 @@
     "id": "tr-en",
     "type": "translation",
     "language": "英文",
-    "version": "v1.0.0",
+    "version": "opus-mt v1.0.0",
     "size": 0.18,
-    "builtIn": true
+    "builtIn": true,
+    "routes": [
+      {
+        "sourceLang": "中文",
+        "targetLang": "英文",
+        "pairCode": "zh-en",
+        "modelRepo": "builtin"
+      }
+    ]
   },
   {
     "id": "tr-zh",
     "type": "translation",
     "language": "中文",
-    "version": "v1.0.0",
+    "version": "opus-mt v1.0.0",
     "size": 0.18,
-    "builtIn": true
+    "builtIn": true,
+    "routes": [
+      {
+        "sourceLang": "英文",
+        "targetLang": "中文",
+        "pairCode": "en-zh",
+        "modelRepo": "builtin"
+      }
+    ]
   }
 ]

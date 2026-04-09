@@ -75,81 +75,84 @@ export const initialModels: LocalModel[] = [
     id: "asr-faster-whisper-base",
     type: "asr",
     language: "中文",
-    version: "v1.0.0",
+    version: "faster-whisper-base",
     status: "installed",
-    size: 0.19
+    size: 0.19,
+    builtIn: true,
   },
   {
     id: "tr-zh",
     type: "translation",
     language: "中文",
-    version: "v1.0.0",
+    version: "opus-mt v1.0.0",
     status: "installed",
-    size: 0.18
+    size: 0.18,
+    builtIn: true,
   },
   {
     id: "tr-en",
     type: "translation",
     language: "英文",
-    version: "v1.0.0",
+    version: "opus-mt v1.0.0",
     status: "installed",
-    size: 0.18
+    size: 0.18,
+    builtIn: true,
   },
   {
     id: "tr-ja",
     type: "translation",
     language: "日文",
-    version: "v1.0.0",
+    version: "opus-mt ctranslate2",
     status: "not_installed",
-    size: 0.26
+    size: 0.62
   },
   {
     id: "tr-ko",
     type: "translation",
     language: "韩文",
-    version: "v1.0.0",
+    version: "opus-mt ctranslate2",
     status: "not_installed",
-    size: 0.25
+    size: 0.62
   },
   {
     id: "tr-fr",
     type: "translation",
     language: "法文",
-    version: "v1.0.0",
+    version: "opus-mt ctranslate2",
     status: "not_installed",
-    size: 0.29,
+    size: 0.62,
     progress: 0
   },
   {
     id: "tr-de",
     type: "translation",
     language: "德文",
-    version: "v1.0.0",
+    version: "opus-mt ctranslate2",
     status: "not_installed",
-    size: 0.28
+    size: 0.62
   },
   {
     id: "tr-ru",
     type: "translation",
     language: "俄文",
-    version: "v1.0.0",
+    version: "opus-mt ctranslate2",
     status: "not_installed",
-    size: 0.33
+    size: 0.62
   },
   {
     id: "tr-es",
     type: "translation",
     language: "西班牙文",
-    version: "v1.0.0",
+    version: "opus-mt ctranslate2",
     status: "not_installed",
-    size: 0.3
+    size: 0.62
   },
   {
     id: "tr-it",
     type: "translation",
     language: "意大利文",
-    version: "v1.0.0",
+    version: "opus-mt ctranslate2",
     status: "not_installed",
-    size: 0.31
+    size: 0.62
   }
 ];

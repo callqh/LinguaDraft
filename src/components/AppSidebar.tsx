@@ -4,8 +4,7 @@ import { SessionList } from "@/components/SessionList";
 
 const menu = [
   { label: "工作台", to: "/workbench" },
-  { label: "模型管理", to: "/models" },
-  { label: "设置", to: "/settings" }
+  { label: "模型管理", to: "/models" }
 ];
 
 type Props = {
@@ -42,11 +41,5 @@ export const AppSidebar = ({ pinned = true, onTogglePinned }: Props) => (
       ))}
     </nav>
     <SessionList />
-    <div className="mt-auto border-t border-borderSoft pt-3 text-xs text-textMuted">
-      <div>已用 12.4 GB / 50 GB</div>
-      <div className="h-2 rounded-full bg-slate-100 mt-2 overflow-hidden">
-        <div className="h-full w-1/4 bg-accent" />
-      </div>
-    </div>
   </aside>
 );

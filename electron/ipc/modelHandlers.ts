@@ -17,6 +17,11 @@ export const registerIpcHandlers = () => {
   ipcMain.handle("asr:start", async () => asrRunner.start());
   ipcMain.handle("asr:stop", async () => asrRunner.stop());
   ipcMain.handle("asr:transcribe", async () => asrRunner.transcribe());
+  ipcMain.handle(
+    "asr:transcribe-audio",
+    async (_event, raw: ArrayBuffer, extension?: string) =>
+      asrRunner.transcribeAudioBuffer(raw, extension),
+  );
 
   ipcMain.handle("language:detect", async (_event, text: string) => lidRunner.detect(text));
   ipcMain.handle("translation:detect", async (_event, text: string) => translationRunner.detectLanguage(text));

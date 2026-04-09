@@ -8,7 +8,11 @@ type Props = {
 
 export const VoiceControlButton = ({ state, onClick }: Props) => {
   const text =
-    state === "recording" ? "停止录音" : state === "transcribing" ? "识别中..." : "按住说话 / 语音录入";
+    state === "recording"
+      ? "停止录音"
+      : state === "transcribing"
+        ? "识别中..."
+        : "语音录入";
   const icon =
     state === "recording" ? (
       <Square size={14} className="mr-1.5" />
