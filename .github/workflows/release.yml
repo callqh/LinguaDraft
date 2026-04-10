@@ -138,14 +138,14 @@ jobs:
             exit 1
           fi
 
-          LOG_FILE="$(mktemp "${RUNNER_TEMP:-/tmp}/linguadraft-mac-smoke.XXXXXX.log")"
+          LOG_FILE="$(mktemp "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/linguadraft-mac-smoke.XXXXXX.log")"
           trap 'rm -f "${LOG_FILE}"' EXIT
           "${APP_EXEC}" --no-sandbox --disable-gpu > "${LOG_FILE}" 2>&1 &
           APP_PID=$!
           sleep "${SMOKE_TEST_WAIT_SECONDS}"
 
           if ! kill -0 "${APP_PID}" 2>/dev/null; then
-            cat "${LOG_FILE}" || true
+            cat "${LOG_FILE}"
             echo "Packaged macOS app exited too early"
             exit 1
           fi
