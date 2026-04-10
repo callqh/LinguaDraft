@@ -11,7 +11,7 @@
     "prepare:runtime": "pnpm setup:sidecar && pnpm prepare:models",
     "prepare:models": "node scripts/run_prepare_models.mjs",
     "dist:mac": "pnpm prepare:runtime && pnpm build && electron-builder --mac dmg",
-    "dist:win": "pnpm prepare:runtime && pnpm build && electron-builder --win nsis",
+    "dist:win": "pnpm prepare:models && pnpm build && electron-builder --win nsis",
     "dist:all": "pnpm prepare:runtime && pnpm build && electron-builder -mwl",
     "preview": "vite preview",
     "lint": "tsc --noEmit",

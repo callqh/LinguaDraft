@@ -72,6 +72,14 @@ const canRunPython = (pythonCmd: string) => {
   return r.status === 0;
 };
 
+const canRunPyLauncher = (version: string) => {
+  const r = spawnSync("py", [version, "-c", "import sys; print(sys.version)"], {
+    stdio: "ignore",
+    timeout: 8000,
+  });
+  return r.status === 0;
+};
+
 const canImportSidecarDeps = (pythonCmd: string) => {
   const r = spawnSync(
     pythonCmd,
@@ -104,6 +112,7 @@ const findPython = () => {
 const ensureRuntimePython = () => {
   diagnostics.requirementsPath = getBundledRequirements();
   diagnostics.runtimeVenvRoot = getRuntimeVenvRoot();
+  diagnostics.lastError = undefined;
   const bundled = findPython();
   const bundledReady = canRunPython(bundled) && canImportSidecarDeps(bundled);
   if (bundledReady) {
@@ -118,12 +127,21 @@ const ensureRuntimePython = () => {
   }
 
   const req = diagnostics.requirementsPath;
-  if (!fs.existsSync(req)) return bundled;
+  if (!fs.existsSync(req)) {
+    diagnostics.lastError = "requirements-not-found";
+    return bundled;
+  }
 
   const systemPython = [bundled, "python3", "python"].find((cmd) =>
-    cmd.includes("/") || cmd.includes("\\") ? fs.existsSync(cmd) && canRunPython(cmd) : canRunPython(cmd),
+    cmd.includes("/") || cmd.includes("\\")
+      ? fs.existsSync(cmd) && canRunPython(cmd)
+      : canRunPython(cmd),
   );
-  if (!systemPython) {
+  const pyLauncherVersion = isWindows
+    ? ["-3.11", "-3.10", "-3.9", "-3"].find((ver) => canRunPyLauncher(ver))
+    : undefined;
+
+  if (!systemPython && !pyLauncherVersion) {
     diagnostics.selectedPython = bundled;
     diagnostics.pythonSource = bundled.includes("python") ? "bundled" : "unknown";
     diagnostics.depsReady = false;
@@ -134,7 +152,12 @@ const ensureRuntimePython = () => {
   const venvRoot = getRuntimeVenvRoot();
   if (!fs.existsSync(venvRoot)) {
     fs.mkdirSync(venvRoot, { recursive: true });
-    const r = spawnSync(systemPython, ["-m", "venv", venvRoot], {
+    const createCmd = pyLauncherVersion && !systemPython ? "py" : (systemPython as string);
+    const createArgs =
+      pyLauncherVersion && !systemPython
+        ? [pyLauncherVersion, "-m", "venv", venvRoot]
+        : ["-m", "venv", venvRoot];
+    const r = spawnSync(createCmd, createArgs, {
       stdio: "inherit",
       timeout: 240000,
     });
@@ -264,6 +287,11 @@ export const startSidecar = async () => {
 
     const python = ensureRuntimePython();
     diagnostics.selectedPython = python;
+    if (!canRunPython(python)) {
+      diagnostics.lastError = diagnostics.lastError ?? "python-not-runnable";
+      diagnostics.ready = false;
+      return false;
+    }
     process.stdout.write(
       `[sidecar-diagnose] python=${diagnostics.selectedPython} source=${diagnostics.pythonSource} depsReady=${diagnostics.depsReady} entry=${diagnostics.sidecarEntry} modelRoot=${diagnostics.modelRoot}\n`,
     );
@@ -276,7 +304,10 @@ export const startSidecar = async () => {
       process.stdout.write(`[sidecar] ${chunk.toString()}`);
     });
     sidecarProcess.stderr.on("data", (chunk) => {
-      process.stderr.write(`[sidecar] ${chunk.toString()}`);
+      const text = chunk.toString();
+      process.stderr.write(`[sidecar] ${text}`);
+      const firstLine = text.split(/\r?\n/).map((line) => line.trim()).find(Boolean);
+      if (firstLine) diagnostics.lastError = `sidecar-stderr:${firstLine}`;
     });
     sidecarProcess.on("error", (error) => {
       process.stderr.write(`[sidecar] spawn error: ${error.message}\n`);
@@ -288,10 +319,15 @@ export const startSidecar = async () => {
     sidecarProcess.on("exit", () => {
       diagnostics.ready = false;
       ready = false;
+      diagnostics.lastError = diagnostics.lastError ?? "sidecar-process-exit";
       sidecarProcess = null;
     });
 
     for (let i = 0; i < 80; i += 1) {
+      if (!sidecarProcess) {
+        diagnostics.ready = false;
+        return false;
+      }
       if ((await checkHealth()).ok) {
         ready = true;
         diagnostics.ready = true;
@@ -299,7 +335,7 @@ export const startSidecar = async () => {
       }
       await wait(250);
     }
-    diagnostics.lastError = "sidecar-health-check-timeout";
+    diagnostics.lastError = diagnostics.lastError ?? "sidecar-health-check-timeout";
     diagnostics.ready = false;
     return false;
   })();

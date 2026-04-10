@@ -109,9 +109,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          python -m venv services/ai-sidecar/.venv
-          services/ai-sidecar/.venv/Scripts/python -m pip install --upgrade pip
-          services/ai-sidecar/.venv/Scripts/python -m pip install -r services/ai-sidecar/requirements.txt
+          if (Test-Path services/ai-sidecar/.venv) {
+            Remove-Item -Recurse -Force services/ai-sidecar/.venv
+          }
 
       - name: Build package
         env:
