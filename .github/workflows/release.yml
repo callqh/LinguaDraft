@@ -142,7 +142,7 @@ jobs:
           if [ -z "${APP_ID}" ]; then
             APP_ID="app"
           fi
-          LOG_FILE="$(mktemp -p "${RUNNER_TEMP:-${TMPDIR:-/tmp}}" "${APP_ID}-mac-smoke.XXXXXX")"
+          LOG_FILE="$(mktemp "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/${APP_ID}-mac-smoke.XXXXXX")"
           trap 'rm -f "${LOG_FILE}"' EXIT
           "${APP_EXEC}" --no-sandbox --disable-gpu > "${LOG_FILE}" 2>&1 &
           APP_PID=$!
@@ -172,6 +172,7 @@ jobs:
           }
 
           $appId = [System.IO.Path]::GetFileNameWithoutExtension($exe.Name).ToLowerInvariant()
+          $appId = ($appId -replace "[^a-z0-9._]", "")
           if ([string]::IsNullOrWhiteSpace($appId)) {
             $appId = "app"
           }
