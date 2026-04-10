@@ -76,9 +76,9 @@ def download_file(url: str, target: Path, retries: int = 3) -> None:
             if tmp.exists():
                 tmp.unlink(missing_ok=True)
             if attempt >= retries:
-                raise RuntimeError(f"下载失败: {url} -> {target} ({err})") from err
+                raise RuntimeError(f"Download failed: {url} -> {target} ({err})") from err
             sleep_s = attempt * 2
-            print(f"  重试 {attempt}/{retries}: {target.name}，{sleep_s}s 后继续")
+            print(f"  Retry {attempt}/{retries}: {target.name}, continue in {sleep_s}s")
             time.sleep(sleep_s)
 
 
@@ -92,7 +92,7 @@ def verify_files(base_dir: Path, files: Iterable[str]) -> list[str]:
 
 
 def main() -> int:
-    print(f"[prepare-models] 内置模型目录: {BUILTIN_ROOT}")
+    print(f"[prepare-models] Built-in models dir: {BUILTIN_ROOT}")
     ensure_dir(BUILTIN_ROOT)
 
     for spec in MODEL_SPECS:
@@ -100,14 +100,14 @@ def main() -> int:
         target_dir: Path = spec["target_dir"]
         files: list[str] = spec["files"]
 
-        print(f"\\n[prepare-models] 检查 {repo}")
+        print(f"\\n[prepare-models] Check {repo}")
         ensure_dir(target_dir)
         missing = verify_files(target_dir, files)
         if not missing:
-            print(f"  已就绪: {target_dir}")
+            print(f"  Ready: {target_dir}")
             continue
 
-        print(f"  缺失文件 {len(missing)} 个，开始下载...")
+        print(f"  Missing {len(missing)} files, start download...")
         for name in missing:
             url = f"https://huggingface.co/{repo}/resolve/main/{name}"
             dst = target_dir / name
@@ -116,7 +116,7 @@ def main() -> int:
 
         missing_after = verify_files(target_dir, files)
         if missing_after:
-            print(f"[prepare-models] 失败，仍缺失: {repo} -> {missing_after}")
+            print(f"[prepare-models] Failed, still missing: {repo} -> {missing_after}")
             return 1
 
         manifest = {
@@ -128,9 +128,9 @@ def main() -> int:
             json.dumps(manifest, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
-        print(f"  下载完成: {target_dir}")
+        print(f"  Download complete: {target_dir}")
 
-    print("\\n[prepare-models] 所有内置模型已准备完成")
+    print("\\n[prepare-models] All built-in models are ready")
     return 0
 
 
