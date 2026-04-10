@@ -26,5 +26,8 @@ contextBridge.exposeInMainWorld("linguaDraft", {
   },
   sidecar: {
     diagnose: () => ipcRenderer.invoke("sidecar:diagnose"),
-  }
+  },
+  performance: {
+    metrics: () => ipcRenderer.invoke("perf:metrics"),
+  },
 });

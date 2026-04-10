@@ -6,12 +6,16 @@ type UiState = {
   toasts: ToastItem[];
   sidebarPinned: boolean;
   sidebarPeek: boolean;
+  performancePanelOpen: boolean;
+  performancePanelSide: "left" | "right";
   openDialog: (dialog: Omit<DialogState, "open">) => void;
   closeDialog: () => void;
   showToast: (message: string, type?: ToastType) => void;
   removeToast: (id: string) => void;
   setSidebarPinned: (value: boolean) => void;
   setSidebarPeek: (value: boolean) => void;
+  openPerformancePanel: (side: "left" | "right") => void;
+  closePerformancePanel: () => void;
   scheduleSidebarPeekHide: (delayMs?: number) => void;
   cancelSidebarPeekHide: () => void;
 };
@@ -29,6 +33,8 @@ export const useUiStore = create<UiState>((set) => ({
   toasts: [],
   sidebarPinned: true,
   sidebarPeek: false,
+  performancePanelOpen: false,
+  performancePanelSide: "right",
   openDialog: (dialog) => {
     set({ dialog: { ...dialog, open: true } });
   },
@@ -45,6 +51,9 @@ export const useUiStore = create<UiState>((set) => ({
   removeToast: (id) => set((state) => ({ toasts: state.toasts.filter((item) => item.id !== id) })),
   setSidebarPinned: (value) => set({ sidebarPinned: value }),
   setSidebarPeek: (value) => set({ sidebarPeek: value }),
+  openPerformancePanel: (side) =>
+    set({ performancePanelOpen: true, performancePanelSide: side }),
+  closePerformancePanel: () => set({ performancePanelOpen: false }),
   scheduleSidebarPeekHide: (delayMs = 180) => {
     if (sidebarHideTimer) {
       window.clearTimeout(sidebarHideTimer);

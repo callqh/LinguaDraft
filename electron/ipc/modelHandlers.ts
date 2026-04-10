@@ -1,4 +1,5 @@
-import { ipcMain } from "electron";
+import { app, ipcMain } from "electron";
+import * as os from "node:os";
 import { asrRunner } from "../runtime/asrRunner";
 import { lidRunner } from "../runtime/lidRunner";
 import { getModelManager } from "../runtime/modelManager";
@@ -7,6 +8,12 @@ import { getSidecarDiagnostics } from "../sidecar/processManager";
 
 export const registerIpcHandlers = () => {
   const modelManager = getModelManager();
+  const toSerializable = (value: unknown): unknown =>
+    JSON.parse(
+      JSON.stringify(value, (_key, current) =>
+        typeof current === "bigint" ? current.toString() : current,
+      ),
+    );
 
   ipcMain.handle("model:list", async () => modelManager.listModels());
   ipcMain.handle("model:download", async (_event, modelId: string) => modelManager.downloadModel(modelId));
@@ -30,4 +37,39 @@ export const registerIpcHandlers = () => {
     translationRunner.translate(text, targetLang)
   );
   ipcMain.handle("sidecar:diagnose", async () => getSidecarDiagnostics());
+  ipcMain.handle("perf:metrics", async () => {
+    let gpuInfo: unknown = null;
+    try {
+      gpuInfo = await app.getGPUInfo("basic");
+    } catch {
+      gpuInfo = null;
+    }
+
+    return {
+      timestamp: Date.now(),
+      system: {
+        platform: process.platform,
+        cpuCount: os.cpus().length,
+        totalMem: os.totalmem(),
+        freeMem: os.freemem(),
+        loadAvg: os.loadavg(),
+        uptime: os.uptime(),
+      },
+      app: {
+        processes: app.getAppMetrics().map((item) => ({
+          pid: item.pid,
+          type: item.type,
+          creationTime: item.creationTime,
+          serviceName: item.serviceName,
+          sandboxed: item.sandboxed,
+          cpu: item.cpu,
+          memory: item.memory,
+        })),
+      },
+      gpu: {
+        status: app.getGPUFeatureStatus(),
+        info: toSerializable(gpuInfo),
+      },
+    };
+  });
 };

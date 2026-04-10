@@ -1,5 +1,7 @@
 import { Outlet } from "react-router-dom";
+import { Activity } from "lucide-react";
 import { AppSidebar } from "@/components/AppSidebar";
+import { PerformanceOverlay } from "@/components/PerformanceOverlay";
 import { useUiStore } from "@/stores/useUiStore";
 
 export const MainLayout = () => {
@@ -13,6 +15,10 @@ export const MainLayout = () => {
   const cancelSidebarPeekHide = useUiStore(
     (state) => state.cancelSidebarPeekHide,
   );
+  const performancePanelOpen = useUiStore((state) => state.performancePanelOpen);
+  const performancePanelSide = useUiStore((state) => state.performancePanelSide);
+  const openPerformancePanel = useUiStore((state) => state.openPerformancePanel);
+  const closePerformancePanel = useUiStore((state) => state.closePerformancePanel);
   const visible = !sidebarPinned && sidebarPeek;
 
   return (
@@ -54,6 +60,20 @@ export const MainLayout = () => {
           />
         </div>
       ) : null}
+
+      <button
+        className="fixed left-2 top-1/2 z-30 -translate-y-1/2 inline-flex h-9 w-9 items-center justify-center rounded-full border border-borderSoft bg-white text-slate-600 shadow hover:bg-slate-50"
+        aria-label="打开左侧性能面板"
+        onClick={() => openPerformancePanel("left")}
+      >
+        <Activity size={16} />
+      </button>
+
+      <PerformanceOverlay
+        side={performancePanelSide}
+        open={performancePanelOpen}
+        onClose={closePerformancePanel}
+      />
     </div>
   );
 };

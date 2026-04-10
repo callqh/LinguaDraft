@@ -42,6 +42,39 @@ declare global {
           ready: boolean;
         }>;
       };
+      performance: {
+        metrics: () => Promise<{
+          timestamp: number;
+          system: {
+            platform: string;
+            cpuCount: number;
+            totalMem: number;
+            freeMem: number;
+            loadAvg: number[];
+            uptime: number;
+          };
+          app: {
+            processes: Array<{
+              pid: number;
+              type: string;
+              creationTime: number;
+              serviceName?: string;
+              sandboxed?: boolean;
+              cpu?: { percentCPUUsage: number; idleWakeupsPerSecond: number };
+              memory?: {
+                workingSetSize: number;
+                peakWorkingSetSize: number;
+                privateBytes: number;
+                sharedBytes: number;
+              };
+            }>;
+          };
+          gpu: {
+            status: Record<string, string>;
+            info: unknown;
+          };
+        }>;
+      };
     };
   }
 }
