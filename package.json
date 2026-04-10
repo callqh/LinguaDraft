@@ -9,14 +9,14 @@
     "dev": "concurrently -k \"vite --port 5173 --strictPort\" \"tsc -p electron/tsconfig.json --watch\" \"wait-on tcp:5173 file:dist-electron/main.js && electron .\"",
     "build": "tsc --noEmit && vite build && tsc -p electron/tsconfig.json",
     "prepare:runtime": "pnpm setup:sidecar && pnpm prepare:models",
-    "prepare:models": "python3 scripts/prepare_builtin_models.py",
+    "prepare:models": "node scripts/run_prepare_models.mjs",
     "dist:mac": "pnpm prepare:runtime && pnpm build && electron-builder --mac dmg",
     "dist:win": "pnpm prepare:runtime && pnpm build && electron-builder --win nsis",
     "dist:all": "pnpm prepare:runtime && pnpm build && electron-builder -mwl",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "test:e2e": "pnpm build && playwright test",
-    "setup:sidecar": "sh -c 'PY=$(command -v python3.11 || command -v python3.10 || command -v python3.9 || command -v python3); \"$PY\" -m venv services/ai-sidecar/.venv && services/ai-sidecar/.venv/bin/pip install -r services/ai-sidecar/requirements.txt'"
+    "setup:sidecar": "node scripts/setup_sidecar_runtime.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
