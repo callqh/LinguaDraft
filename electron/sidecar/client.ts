@@ -1,8 +1,11 @@
-import { getSidecarPort, isSidecarReady } from "./processManager";
+import { getSidecarPort, isSidecarReady, startSidecar } from "./processManager";
 import type { TranscriptionResult } from "../runtime/types";
 
 const sidecarFetch = async <T>(path: string, payload: Record<string, unknown>) => {
-  if (!isSidecarReady()) throw new Error("sidecar-not-ready");
+  if (!isSidecarReady()) {
+    const started = await startSidecar();
+    if (!started && !isSidecarReady()) throw new Error("sidecar-not-ready");
+  }
   const res = await fetch(`http://127.0.0.1:${getSidecarPort()}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

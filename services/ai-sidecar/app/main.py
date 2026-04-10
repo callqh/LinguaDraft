@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import logging
 import os
-from collections import Counter
 from pathlib import Path
 from typing import Optional
 
@@ -30,8 +29,6 @@ except Exception:
 
 APP = FastAPI(title="LinguaDraft AI Sidecar")
 logger = logging.getLogger("linguadraft.sidecar")
-DEBUG_TRANSLATION = os.getenv("LINGUA_DEBUG_TRANSLATION", "0") == "1"
-
 REPO_ROOT = Path(__file__).resolve().parents[3]
 BUILTIN_ROOT = Path(
     os.getenv("LINGUA_MODEL_ROOT", str(REPO_ROOT / "local-model" / "models" / "builtin"))
@@ -129,32 +126,6 @@ def _load_translator(source_lang: str, target_lang: str):
     return translator, _tokenizers[key]
 
 
-def _is_low_quality_translation(text: str) -> bool:
-    cleaned = " ".join(text.split()).strip().lower()
-    if not cleaned:
-        return True
-    words = [w for w in cleaned.split(" ") if w]
-    if len(words) < 6:
-        return False
-
-    unique_ratio = len(set(words)) / len(words)
-    if unique_ratio < 0.45:
-        return True
-
-    counts = Counter(words)
-    if counts and max(counts.values()) >= 5:
-        return True
-
-    if len(words) >= 8:
-        bi_counts = Counter(
-            f"{words[i]} {words[i + 1]}" for i in range(0, len(words) - 1)
-        )
-        if bi_counts and max(bi_counts.values()) >= 4:
-            return True
-
-    return False
-
-
 class TranslateReq(BaseModel):
     text: str
     source_lang: str
@@ -209,8 +180,6 @@ def run_translation(req: TranslateReq):
     source_tokenizer, target_tokenizer = tokenizers
 
     pieces = source_tokenizer.encode(req.text, out_type=str)
-    short_input = len(req.text.strip()) <= 8 or len(pieces) <= 4
-
     def decode_once(**kwargs):
         result = translator.translate_batch([pieces], **kwargs)
         out_pieces = result[0].hypotheses[0] if result and result[0].hypotheses else []
@@ -226,36 +195,8 @@ def run_translation(req: TranslateReq):
         no_repeat_ngram_size=3,
     )
 
-    # Retry with stricter decoding strategy for short/noisy inputs.
-    if _is_low_quality_translation(text):
-        retry_max_len = min(24, max(8, len(pieces) * 2 + 2))
-        retry_text, retry_out, retry_decoded = decode_once(
-            beam_size=1,
-            max_decoding_length=retry_max_len,
-            repetition_penalty=1.35,
-            no_repeat_ngram_size=2,
-        )
-        if retry_text and (
-            not _is_low_quality_translation(retry_text) or len(retry_text) < len(text)
-        ):
-            text, out_pieces, decoded = retry_text, retry_out, retry_decoded
-
-    if DEBUG_TRANSLATION:
-        logger.info(
-            "[translation-debug] %s->%s input=%r source_pieces=%s out_pieces=%s decoded=%r cleaned=%r",
-            req.source_lang,
-            req.target_lang,
-            req.text,
-            pieces,
-            out_pieces,
-            decoded,
-            text,
-        )
-
     if not text:
         raise HTTPException(status_code=500, detail="translation-empty")
-    if short_input and _is_low_quality_translation(text):
-        raise HTTPException(status_code=422, detail="translation-quality-low")
     if len(text) > 240:
         text = text[:240].strip()
     return TranslateResp(text=text)

@@ -11,6 +11,7 @@ const HEALTH_URL = `http://127.0.0.1:${SIDECAR_PORT}/health`;
 
 let sidecarProcess: ChildProcessWithoutNullStreams | null = null;
 let ready = false;
+let startPromise: Promise<boolean> | null = null;
 
 type SidecarDiagnostics = {
   selectedPython: string;
@@ -161,6 +162,7 @@ type HealthPayload = {
   ok?: boolean;
   engines?: {
     faster_whisper?: boolean;
+    ctranslate2?: boolean;
   };
   model_root?: string;
   models?: {
@@ -176,8 +178,9 @@ const checkHealth = async (): Promise<{ ok: boolean; reason?: string }> => {
     if (!res.ok) return { ok: false, reason: `http-${res.status}` };
     const payload = (await res.json()) as HealthPayload;
     if (!payload.ok) return { ok: false, reason: "payload-not-ok" };
-    if (!payload.engines?.faster_whisper) return { ok: false, reason: "asr-engine-missing" };
-    if (!payload.models?.asr_ready) return { ok: false, reason: "asr-not-ready" };
+    if (!payload.engines?.faster_whisper && !payload.engines?.ctranslate2) {
+      return { ok: false, reason: "sidecar-engines-missing" };
+    }
     if (payload.model_root && payload.model_root !== expectedModelRoot()) {
       return { ok: false, reason: "model-root-mismatch" };
     }
@@ -212,67 +215,91 @@ const killOccupantOnPort = () => {
 
 export const startSidecar = async () => {
   if (ready) return true;
-  const health = await checkHealth();
-  diagnostics.healthReason = health.reason;
-  if (health.ok) {
-    ready = true;
-    diagnostics.ready = true;
-    return true;
-  }
-  if (health.reason === "asr-not-ready" || health.reason === "model-root-mismatch") {
-    killOccupantOnPort();
-    await wait(250);
-  }
+  if (startPromise) return startPromise;
 
-  const sidecarEntry = firstExisting([
-    path.join(app.getAppPath(), "services", "ai-sidecar", "app", "main.py"),
-    path.join(process.resourcesPath, "services", "ai-sidecar", "app", "main.py"),
-    path.join(process.resourcesPath, "app.asar.unpacked", "services", "ai-sidecar", "app", "main.py"),
-  ]);
-  if (!fs.existsSync(sidecarEntry)) return false;
-  diagnostics.sidecarEntry = sidecarEntry;
-  diagnostics.modelRoot = getUserBuiltinRoot();
-
-  const python = ensureRuntimePython();
-  diagnostics.selectedPython = python;
-  process.stdout.write(
-    `[sidecar-diagnose] python=${diagnostics.selectedPython} source=${diagnostics.pythonSource} depsReady=${diagnostics.depsReady} entry=${diagnostics.sidecarEntry} modelRoot=${diagnostics.modelRoot}\n`,
-  );
-  sidecarProcess = spawn(python, [sidecarEntry, "--port", `${SIDECAR_PORT}`], {
-    cwd: app.getAppPath(),
-    env: { ...process.env, PYTHONUNBUFFERED: "1", LINGUA_MODEL_ROOT: getUserBuiltinRoot() }
-  });
-
-  sidecarProcess.stdout.on("data", (chunk) => {
-    process.stdout.write(`[sidecar] ${chunk.toString()}`);
-  });
-  sidecarProcess.stderr.on("data", (chunk) => {
-    process.stderr.write(`[sidecar] ${chunk.toString()}`);
-  });
-  sidecarProcess.on("error", (error) => {
-    process.stderr.write(`[sidecar] spawn error: ${error.message}\n`);
-    diagnostics.lastError = error.message;
-    diagnostics.ready = false;
-    ready = false;
-    sidecarProcess = null;
-  });
-  sidecarProcess.on("exit", () => {
-    diagnostics.ready = false;
-    ready = false;
-    sidecarProcess = null;
-  });
-
-  for (let i = 0; i < 30; i += 1) {
-    if ((await checkHealth()).ok) {
+  startPromise = (async () => {
+    const health = await checkHealth();
+    diagnostics.healthReason = health.reason;
+    if (health.ok) {
       ready = true;
       diagnostics.ready = true;
       return true;
     }
-    await wait(200);
+    if (health.reason === "model-root-mismatch") {
+      killOccupantOnPort();
+      await wait(250);
+    }
+
+    if (sidecarProcess) {
+      for (let i = 0; i < 80; i += 1) {
+        if ((await checkHealth()).ok) {
+          ready = true;
+          diagnostics.ready = true;
+          return true;
+        }
+        await wait(250);
+      }
+      diagnostics.lastError = "sidecar-health-check-timeout";
+      diagnostics.ready = false;
+      return false;
+    }
+
+    const sidecarEntry = firstExisting([
+      path.join(app.getAppPath(), "services", "ai-sidecar", "app", "main.py"),
+      path.join(process.resourcesPath, "services", "ai-sidecar", "app", "main.py"),
+      path.join(process.resourcesPath, "app.asar.unpacked", "services", "ai-sidecar", "app", "main.py"),
+    ]);
+    if (!fs.existsSync(sidecarEntry)) return false;
+    diagnostics.sidecarEntry = sidecarEntry;
+    diagnostics.modelRoot = getUserBuiltinRoot();
+
+    const python = ensureRuntimePython();
+    diagnostics.selectedPython = python;
+    process.stdout.write(
+      `[sidecar-diagnose] python=${diagnostics.selectedPython} source=${diagnostics.pythonSource} depsReady=${diagnostics.depsReady} entry=${diagnostics.sidecarEntry} modelRoot=${diagnostics.modelRoot}\n`,
+    );
+    sidecarProcess = spawn(python, [sidecarEntry, "--port", `${SIDECAR_PORT}`], {
+      cwd: app.getAppPath(),
+      env: { ...process.env, PYTHONUNBUFFERED: "1", LINGUA_MODEL_ROOT: getUserBuiltinRoot() }
+    });
+
+    sidecarProcess.stdout.on("data", (chunk) => {
+      process.stdout.write(`[sidecar] ${chunk.toString()}`);
+    });
+    sidecarProcess.stderr.on("data", (chunk) => {
+      process.stderr.write(`[sidecar] ${chunk.toString()}`);
+    });
+    sidecarProcess.on("error", (error) => {
+      process.stderr.write(`[sidecar] spawn error: ${error.message}\n`);
+      diagnostics.lastError = error.message;
+      diagnostics.ready = false;
+      ready = false;
+      sidecarProcess = null;
+    });
+    sidecarProcess.on("exit", () => {
+      diagnostics.ready = false;
+      ready = false;
+      sidecarProcess = null;
+    });
+
+    for (let i = 0; i < 80; i += 1) {
+      if ((await checkHealth()).ok) {
+        ready = true;
+        diagnostics.ready = true;
+        return true;
+      }
+      await wait(250);
+    }
+    diagnostics.lastError = "sidecar-health-check-timeout";
+    diagnostics.ready = false;
+    return false;
+  })();
+
+  try {
+    return await startPromise;
+  } finally {
+    startPromise = null;
   }
-  diagnostics.lastError = "sidecar-health-check-timeout";
-  diagnostics.ready = false;
-  return false;
 };
 
 export const stopSidecar = () => {

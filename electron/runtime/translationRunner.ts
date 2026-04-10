@@ -83,8 +83,14 @@ export const translationRunner = {
         // if (message.includes("translation-quality-low")) {
         //   throw new Error("翻译结果质量不稳定，请补充上下文后重试");
         // }
+        if (message.includes("translation-quality-low")) {
+          return input;
+        }
         if (message.includes("translation-model-not-ready")) {
           throw new Error(`${from} 到 ${to} 模型未就绪，请先下载对应模型`);
+        }
+        if (message.includes("sidecar-not-ready")) {
+          throw new Error("翻译服务未就绪，请稍后重试");
         }
         throw new Error(`翻译失败：${message}`);
       }
