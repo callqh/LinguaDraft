@@ -12,6 +12,7 @@ const HEALTH_URL = `http://127.0.0.1:${SIDECAR_PORT}/health`;
 let sidecarProcess: ChildProcessWithoutNullStreams | null = null;
 let ready = false;
 let startPromise: Promise<boolean> | null = null;
+let runtimeBootstrapFailed = false;
 
 type SidecarDiagnostics = {
   selectedPython: string;
@@ -68,6 +69,7 @@ const canRunPython = (pythonCmd: string) => {
   const r = spawnSync(pythonCmd, ["-c", "import sys; print(sys.version)"], {
     stdio: "ignore",
     timeout: 8000,
+    windowsHide: isWindows,
   });
   return r.status === 0;
 };
@@ -76,6 +78,7 @@ const canRunPyLauncher = (version: string) => {
   const r = spawnSync("py", [version, "-c", "import sys; print(sys.version)"], {
     stdio: "ignore",
     timeout: 8000,
+    windowsHide: isWindows,
   });
   return r.status === 0;
 };
@@ -90,6 +93,7 @@ const canImportSidecarDeps = (pythonCmd: string) => {
     {
       stdio: "ignore",
       timeout: 12000,
+      windowsHide: isWindows,
     },
   );
   return r.status === 0;
@@ -97,16 +101,25 @@ const canImportSidecarDeps = (pythonCmd: string) => {
 
 const findPython = () => {
   const appPath = app.getAppPath();
-  const venvPy = firstExisting([
-    path.join(appPath, "services", "ai-sidecar", ".venv", "bin", "python"),
-    path.join(appPath, "services", "ai-sidecar", ".venv", "Scripts", "python.exe"),
-    path.join(process.resourcesPath, "services", "ai-sidecar", ".venv", "bin", "python"),
-    path.join(process.resourcesPath, "services", "ai-sidecar", ".venv", "Scripts", "python.exe"),
-    path.join(process.resourcesPath, "app.asar.unpacked", "services", "ai-sidecar", ".venv", "bin", "python"),
-    path.join(process.resourcesPath, "app.asar.unpacked", "services", "ai-sidecar", ".venv", "Scripts", "python.exe"),
-  ]);
-  const candidates = [venvPy, "python3", "python"];
-  return candidates.find((bin) => bin.includes("/") ? fs.existsSync(bin) : true) ?? "python3";
+  const bundledCandidates = app.isPackaged
+    ? isWindows
+      ? [
+          path.join(process.resourcesPath, "services", "ai-sidecar", ".venv", "Scripts", "python.exe"),
+          path.join(process.resourcesPath, "app.asar.unpacked", "services", "ai-sidecar", ".venv", "Scripts", "python.exe"),
+        ]
+      : [
+          path.join(process.resourcesPath, "services", "ai-sidecar", ".venv", "bin", "python"),
+          path.join(process.resourcesPath, "app.asar.unpacked", "services", "ai-sidecar", ".venv", "bin", "python"),
+        ]
+    : isWindows
+      ? [path.join(appPath, "services", "ai-sidecar", ".venv", "Scripts", "python.exe")]
+      : [path.join(appPath, "services", "ai-sidecar", ".venv", "bin", "python")];
+  for (const candidate of bundledCandidates) {
+    if (fs.existsSync(candidate) && canRunPython(candidate)) {
+      return candidate;
+    }
+  }
+  return "";
 };
 
 const ensureRuntimePython = () => {
@@ -114,8 +127,9 @@ const ensureRuntimePython = () => {
   diagnostics.runtimeVenvRoot = getRuntimeVenvRoot();
   diagnostics.lastError = undefined;
   const bundled = findPython();
-  const bundledReady = canRunPython(bundled) && canImportSidecarDeps(bundled);
+  const bundledReady = bundled ? canImportSidecarDeps(bundled) : false;
   if (bundledReady) {
+    runtimeBootstrapFailed = false;
     diagnostics.selectedPython = bundled;
     diagnostics.pythonSource = bundled.includes("sidecar-venv")
       ? "runtime-venv"
@@ -129,27 +143,35 @@ const ensureRuntimePython = () => {
   const req = diagnostics.requirementsPath;
   if (!fs.existsSync(req)) {
     diagnostics.lastError = "requirements-not-found";
-    return bundled;
+    return bundled || "";
   }
 
-  const systemPython = [bundled, "python3", "python"].find((cmd) =>
-    cmd.includes("/") || cmd.includes("\\")
-      ? fs.existsSync(cmd) && canRunPython(cmd)
-      : canRunPython(cmd),
-  );
+  const systemPython = [bundled, "python3", "python"].find((cmd) => {
+    if (!cmd) return false;
+    const isPath = cmd.includes("/") || cmd.includes("\\");
+    return isPath ? fs.existsSync(cmd) && canRunPython(cmd) : canRunPython(cmd);
+  });
   const pyLauncherVersion = isWindows
     ? ["-3.11", "-3.10", "-3.9", "-3"].find((ver) => canRunPyLauncher(ver))
     : undefined;
 
   if (!systemPython && !pyLauncherVersion) {
-    diagnostics.selectedPython = bundled;
+    diagnostics.selectedPython = bundled || "";
     diagnostics.pythonSource = bundled.includes("python") ? "bundled" : "unknown";
     diagnostics.depsReady = false;
     diagnostics.lastError = "no-python-for-runtime-venv";
-    return bundled;
+    return bundled || "";
   }
 
   const venvRoot = getRuntimeVenvRoot();
+  if (runtimeBootstrapFailed) {
+    diagnostics.selectedPython = bundled || getRuntimeVenvPython();
+    diagnostics.pythonSource = "runtime-venv";
+    diagnostics.depsReady = false;
+    diagnostics.lastError = diagnostics.lastError ?? "runtime-bootstrap-disabled-after-failure";
+    return diagnostics.selectedPython;
+  }
+
   if (!fs.existsSync(venvRoot)) {
     fs.mkdirSync(venvRoot, { recursive: true });
     const createCmd = pyLauncherVersion && !systemPython ? "py" : (systemPython as string);
@@ -158,32 +180,37 @@ const ensureRuntimePython = () => {
         ? [pyLauncherVersion, "-m", "venv", venvRoot]
         : ["-m", "venv", venvRoot];
     const r = spawnSync(createCmd, createArgs, {
-      stdio: "inherit",
+      stdio: "pipe",
       timeout: 240000,
+      windowsHide: isWindows,
     });
     if (r.status !== 0) {
+      runtimeBootstrapFailed = true;
       diagnostics.lastError = "runtime-venv-create-failed";
-      return bundled;
+      return bundled || "";
     }
   }
 
   const runtimePython = getRuntimeVenvPython();
-  if (!fs.existsSync(runtimePython)) return bundled;
+  if (!fs.existsSync(runtimePython)) return bundled || "";
 
   if (!canImportSidecarDeps(runtimePython)) {
     const pipInstall = spawnSync(
       runtimePython,
       ["-m", "pip", "install", "-r", req],
       {
-        stdio: "inherit",
+        stdio: "pipe",
         timeout: 600000,
+        windowsHide: isWindows,
       },
     );
     if (pipInstall.status !== 0) {
+      runtimeBootstrapFailed = true;
       diagnostics.lastError = "runtime-pip-install-failed";
-      return bundled;
+      return bundled || "";
     }
   }
+  runtimeBootstrapFailed = false;
   diagnostics.selectedPython = runtimePython;
   diagnostics.pythonSource = "runtime-venv";
   diagnostics.depsReady = true;
@@ -287,7 +314,7 @@ export const startSidecar = async () => {
 
     const python = ensureRuntimePython();
     diagnostics.selectedPython = python;
-    if (!canRunPython(python)) {
+    if (!python || !canRunPython(python)) {
       diagnostics.lastError = diagnostics.lastError ?? "python-not-runnable";
       diagnostics.ready = false;
       return false;
@@ -297,7 +324,8 @@ export const startSidecar = async () => {
     );
     sidecarProcess = spawn(python, [sidecarEntry, "--port", `${SIDECAR_PORT}`], {
       cwd: app.getAppPath(),
-      env: { ...process.env, PYTHONUNBUFFERED: "1", LINGUA_MODEL_ROOT: getUserBuiltinRoot() }
+      env: { ...process.env, PYTHONUNBUFFERED: "1", LINGUA_MODEL_ROOT: getUserBuiltinRoot() },
+      windowsHide: isWindows,
     });
 
     sidecarProcess.stdout.on("data", (chunk) => {
