@@ -138,7 +138,7 @@ jobs:
             exit 1
           fi
 
-          APP_ID="$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9._-')"
+          APP_ID="$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | tr -cd '-a-z0-9._')"
           if [ -z "${APP_ID}" ]; then
             APP_ID="app"
           fi
@@ -185,7 +185,7 @@ jobs:
               throw "Packaged Windows app exited too early with code $($process.ExitCode)"
             }
 
-            Stop-Process -Id $process.Id -Force
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
             Wait-Process -Id $process.Id -ErrorAction SilentlyContinue
           } finally {
             Remove-Item -Path $stdoutLog, $stderrLog -ErrorAction SilentlyContinue
