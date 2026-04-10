@@ -77,7 +77,7 @@ const canImportSidecarDeps = (pythonCmd: string) => {
     pythonCmd,
     [
       "-c",
-      "import fastapi,uvicorn,faster_whisper,ctranslate2,sentencepiece,opencc; print('ok')",
+      "import importlib.util as iu; has=lambda n: iu.find_spec(n) is not None; ok = has('fastapi') and has('uvicorn') and ((has('ctranslate2') and has('sentencepiece')) or has('faster_whisper')); raise SystemExit(0 if ok else 1)",
     ],
     {
       stdio: "ignore",
@@ -120,11 +120,14 @@ const ensureRuntimePython = () => {
   const req = diagnostics.requirementsPath;
   if (!fs.existsSync(req)) return bundled;
 
-  const systemPython = ["python3", "python"].find((cmd) => canRunPython(cmd));
+  const systemPython = [bundled, "python3", "python"].find((cmd) =>
+    cmd.includes("/") || cmd.includes("\\") ? fs.existsSync(cmd) && canRunPython(cmd) : canRunPython(cmd),
+  );
   if (!systemPython) {
     diagnostics.selectedPython = bundled;
     diagnostics.pythonSource = bundled.includes("python") ? "bundled" : "unknown";
     diagnostics.depsReady = false;
+    diagnostics.lastError = "no-python-for-runtime-venv";
     return bundled;
   }
 
@@ -135,7 +138,10 @@ const ensureRuntimePython = () => {
       stdio: "inherit",
       timeout: 240000,
     });
-    if (r.status !== 0) return bundled;
+    if (r.status !== 0) {
+      diagnostics.lastError = "runtime-venv-create-failed";
+      return bundled;
+    }
   }
 
   const runtimePython = getRuntimeVenvPython();
@@ -150,7 +156,10 @@ const ensureRuntimePython = () => {
         timeout: 600000,
       },
     );
-    if (pipInstall.status !== 0) return bundled;
+    if (pipInstall.status !== 0) {
+      diagnostics.lastError = "runtime-pip-install-failed";
+      return bundled;
+    }
   }
   diagnostics.selectedPython = runtimePython;
   diagnostics.pythonSource = "runtime-venv";

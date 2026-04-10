@@ -1,10 +1,13 @@
 import { useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Check, PencilLine, Plus, Trash2, X } from "lucide-react";
 import { useAppStore } from "@/stores/useAppStore";
 import { useUiStore } from "@/stores/useUiStore";
 import { formatClock } from "@/utils/format";
 
 export const SessionList = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const sessions = useAppStore((state) => state.sessions);
   const currentSessionId = useAppStore((state) => state.currentSessionId);
   const setCurrentSession = useAppStore((state) => state.setCurrentSession);
@@ -56,6 +59,13 @@ export const SessionList = () => {
     });
   };
 
+  const handleSessionSelect = (sessionId: string) => {
+    setCurrentSession(sessionId);
+    if (location.pathname.startsWith("/models")) {
+      navigate("/workbench");
+    }
+  };
+
   return (
     <div className="flex-1 min-h-0">
       <div className="mb-2 flex items-center justify-between">
@@ -79,7 +89,7 @@ export const SessionList = () => {
           >
             <button
               data-testid={`session-item-${session.id}`}
-              onClick={() => setCurrentSession(session.id)}
+              onClick={() => handleSessionSelect(session.id)}
               className="w-full text-left flex items-center justify-between gap-2 pr-16"
             >
               {editingId === session.id ? (
