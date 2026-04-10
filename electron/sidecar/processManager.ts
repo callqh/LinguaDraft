@@ -65,6 +65,17 @@ const getBundledRequirements = () =>
     ),
   ]);
 
+const getSidecarCwd = () => {
+  const appPath = app.getAppPath();
+  try {
+    const stat = fs.statSync(appPath);
+    if (stat.isDirectory()) return appPath;
+  } catch {
+    // ignore and fallback
+  }
+  return process.resourcesPath;
+};
+
 const canRunPython = (pythonCmd: string) => {
   const r = spawnSync(pythonCmd, ["-c", "import sys; print(sys.version)"], {
     stdio: "ignore",
@@ -323,7 +334,7 @@ export const startSidecar = async () => {
       `[sidecar-diagnose] python=${diagnostics.selectedPython} source=${diagnostics.pythonSource} depsReady=${diagnostics.depsReady} entry=${diagnostics.sidecarEntry} modelRoot=${diagnostics.modelRoot}\n`,
     );
     sidecarProcess = spawn(python, [sidecarEntry, "--port", `${SIDECAR_PORT}`], {
-      cwd: app.getAppPath(),
+      cwd: getSidecarCwd(),
       env: { ...process.env, PYTHONUNBUFFERED: "1", LINGUA_MODEL_ROOT: getUserBuiltinRoot() },
       windowsHide: isWindows,
     });
