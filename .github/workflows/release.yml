@@ -125,19 +125,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APP_PATH="$(find release -maxdepth 2 -type d -name '*.app' | head -n 1)"
+          APP_PATH="$(find release -type d -name '*.app' | head -n 1)"
           if [ -z "${APP_PATH}" ]; then
             echo "No .app bundle found under release/"
             exit 1
           fi
 
-          APP_EXEC="$(find "${APP_PATH}/Contents/MacOS" -maxdepth 1 -type f | head -n 1)"
-          if [ -z "${APP_EXEC}" ] || [ ! -x "${APP_EXEC}" ]; then
-            echo "No executable found in ${APP_PATH}/Contents/MacOS"
+          APP_NAME="$(basename "${APP_PATH}" .app)"
+          APP_EXEC="${APP_PATH}/Contents/MacOS/${APP_NAME}"
+          if [ ! -x "${APP_EXEC}" ]; then
+            echo "Expected executable not found: ${APP_EXEC}"
             exit 1
           fi
 
           LOG_FILE="$(mktemp "${RUNNER_TEMP:-/tmp}/linguadraft-mac-smoke.XXXXXX.log")"
+          trap 'rm -f "${LOG_FILE}"' EXIT
           "${APP_EXEC}" --no-sandbox --disable-gpu > "${LOG_FILE}" 2>&1 &
           APP_PID=$!
           sleep "${SMOKE_TEST_WAIT_SECONDS}"
