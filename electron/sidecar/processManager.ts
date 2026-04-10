@@ -304,9 +304,12 @@ export const startSidecar = async () => {
       process.stdout.write(`[sidecar] ${chunk.toString()}`);
     });
     sidecarProcess.stderr.on("data", (chunk) => {
-      const text = chunk.toString();
+      const text: string = chunk.toString();
       process.stderr.write(`[sidecar] ${text}`);
-      const firstLine = text.split(/\r?\n/).map((line) => line.trim()).find(Boolean);
+      const firstLine = text
+        .split(/\r?\n/)
+        .map((line: string) => line.trim())
+        .find(Boolean);
       if (firstLine) diagnostics.lastError = `sidecar-stderr:${firstLine}`;
     });
     sidecarProcess.on("error", (error) => {
