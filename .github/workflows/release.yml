@@ -60,6 +60,8 @@ jobs:
     name: Build ${{ matrix.platform }}
     needs: create_tag
     runs-on: ${{ matrix.os }}
+    env:
+      SMOKE_TEST_WAIT_SECONDS: "15"
     strategy:
       fail-fast: false
       matrix:
@@ -117,6 +119,59 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: pnpm ${{ matrix.dist_cmd }}
+
+      - name: Smoke test packaged app (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="$(find release -maxdepth 2 -type d -name '*.app' | head -n 1)"
+          if [ -z "${APP_PATH}" ]; then
+            echo "No .app bundle found under release/"
+            exit 1
+          fi
+
+          APP_EXEC="$(find "${APP_PATH}/Contents/MacOS" -maxdepth 1 -type f | head -n 1)"
+          if [ -z "${APP_EXEC}" ] || [ ! -x "${APP_EXEC}" ]; then
+            echo "No executable found in ${APP_PATH}/Contents/MacOS"
+            exit 1
+          fi
+
+          LOG_FILE="$(mktemp "${RUNNER_TEMP:-/tmp}/linguadraft-mac-smoke.XXXXXX.log")"
+          "${APP_EXEC}" --no-sandbox --disable-gpu > "${LOG_FILE}" 2>&1 &
+          APP_PID=$!
+          sleep "${SMOKE_TEST_WAIT_SECONDS}"
+
+          if ! kill -0 "${APP_PID}" 2>/dev/null; then
+            cat "${LOG_FILE}" || true
+            echo "Packaged macOS app exited too early"
+            exit 1
+          fi
+
+          kill "${APP_PID}" || true
+          wait "${APP_PID}" || true
+
+      - name: Smoke test packaged app (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path "release/win-unpacked" -Filter "*.exe" -File |
+            Where-Object { $_.Name -notlike "Uninstall*" } |
+            Select-Object -First 1
+
+          if (-not $exe) {
+            throw "No packaged executable found under release/win-unpacked"
+          }
+
+          $process = Start-Process -FilePath $exe.FullName -ArgumentList "--no-sandbox", "--disable-gpu" -PassThru
+          Start-Sleep -Seconds ([int]$env:SMOKE_TEST_WAIT_SECONDS)
+
+          if ($process.HasExited) {
+            throw "Packaged Windows app exited too early with code $($process.ExitCode)"
+          }
+
+          Stop-Process -Id $process.Id -Force
+          Wait-Process -Id $process.Id -ErrorAction SilentlyContinue
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
