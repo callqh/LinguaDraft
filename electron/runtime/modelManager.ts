@@ -46,7 +46,18 @@ export class ModelManager {
     this.modelFileRoot = getUserBuiltinRoot();
     this.statePath = path.join(app.getPath("userData"), "model-state.json");
     ensureDir(this.modelFileRoot);
-    this.bootstrap();
+    try {
+      this.bootstrap();
+    } catch (error) {
+      this.models = [];
+      try {
+        process.stderr.write(
+          `[model-manager] bootstrap failed: ${error instanceof Error ? error.stack ?? error.message : String(error)}\n`,
+        );
+      } catch {
+        // ignore logging failure
+      }
+    }
   }
 
   private routeInstalled(route: NonNullable<LocalModel["routes"]>[number]) {

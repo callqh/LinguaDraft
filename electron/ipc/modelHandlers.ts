@@ -2,12 +2,17 @@ import { app, ipcMain } from "electron";
 import * as os from "node:os";
 import { asrRunner } from "../runtime/asrRunner";
 import { lidRunner } from "../runtime/lidRunner";
-import { getModelManager } from "../runtime/modelManager";
+import { getModelManager, type ModelManager } from "../runtime/modelManager";
 import { translationRunner } from "../runtime/translationRunner";
 import { getSidecarDiagnostics } from "../sidecar/processManager";
 
 export const registerIpcHandlers = () => {
-  const modelManager = getModelManager();
+  let modelManager: ModelManager | null = null;
+  const ensureModelManager = () => {
+    if (modelManager) return modelManager;
+    modelManager = getModelManager();
+    return modelManager;
+  };
   const toSerializable = (value: unknown): unknown =>
     JSON.parse(
       JSON.stringify(value, (_key, current) =>
@@ -15,12 +20,22 @@ export const registerIpcHandlers = () => {
       ),
     );
 
-  ipcMain.handle("model:list", async () => modelManager.listModels());
-  ipcMain.handle("model:download", async (_event, modelId: string) => modelManager.downloadModel(modelId));
-  ipcMain.handle("model:pause", async (_event, modelId: string) => modelManager.pauseDownload(modelId));
-  ipcMain.handle("model:resume", async (_event, modelId: string) => modelManager.resumeDownload(modelId));
-  ipcMain.handle("model:cancel", async (_event, modelId: string) => modelManager.cancelDownload(modelId));
-  ipcMain.handle("model:delete", async (_event, modelId: string) => modelManager.deleteModel(modelId));
+  ipcMain.handle("model:list", async () => ensureModelManager().listModels());
+  ipcMain.handle("model:download", async (_event, modelId: string) =>
+    ensureModelManager().downloadModel(modelId),
+  );
+  ipcMain.handle("model:pause", async (_event, modelId: string) =>
+    ensureModelManager().pauseDownload(modelId),
+  );
+  ipcMain.handle("model:resume", async (_event, modelId: string) =>
+    ensureModelManager().resumeDownload(modelId),
+  );
+  ipcMain.handle("model:cancel", async (_event, modelId: string) =>
+    ensureModelManager().cancelDownload(modelId),
+  );
+  ipcMain.handle("model:delete", async (_event, modelId: string) =>
+    ensureModelManager().deleteModel(modelId),
+  );
 
   ipcMain.handle("asr:start", async () => asrRunner.start());
   ipcMain.handle("asr:stop", async () => asrRunner.stop());

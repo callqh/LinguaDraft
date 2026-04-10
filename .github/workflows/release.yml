@@ -118,6 +118,36 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: pnpm ${{ matrix.dist_cmd }}
 
+      - name: Verify packaged resources
+        run: node scripts/ci/verify_packaged_resources.mjs release ${{ matrix.platform }}
+
+      - name: Resolve packaged executable (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_BIN="$(find release -type f -path "*/LinguaDraft.app/Contents/MacOS/LinguaDraft" | head -n 1)"
+          if [ -z "$APP_BIN" ]; then
+            echo "Cannot find packaged app executable" >&2
+            exit 1
+          fi
+          echo "PACKAGED_APP_EXECUTABLE=$APP_BIN" >> "$GITHUB_ENV"
+
+      - name: Resolve packaged executable (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path release -Recurse -Filter LinguaDraft.exe |
+            Where-Object { $_.FullName -match "win-unpacked" } |
+            Select-Object -First 1
+          if (-not $exe) {
+            throw "Cannot find packaged app executable under release/win-unpacked"
+          }
+          "PACKAGED_APP_EXECUTABLE=$($exe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Smoke test packaged IPC
+        run: node scripts/ci/smoke_packaged_ipc.mjs "${{ env.PACKAGED_APP_EXECUTABLE }}"
+
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
         with:
