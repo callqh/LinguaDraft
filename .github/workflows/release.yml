@@ -138,11 +138,11 @@ jobs:
             exit 1
           fi
 
-          APP_ID="$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | tr -cd '-a-z0-9._')"
+          APP_ID="$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9._')"
           if [ -z "${APP_ID}" ]; then
             APP_ID="app"
           fi
-          LOG_FILE="$(mktemp "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/${APP_ID}-mac-smoke.XXXXXX.log")"
+          LOG_FILE="$(mktemp -p "${RUNNER_TEMP:-${TMPDIR:-/tmp}}" "${APP_ID}-mac-smoke.XXXXXX")"
           trap 'rm -f "${LOG_FILE}"' EXIT
           "${APP_EXEC}" --no-sandbox --disable-gpu > "${LOG_FILE}" 2>&1 &
           APP_PID=$!
@@ -154,8 +154,10 @@ jobs:
             exit 1
           fi
 
-          kill "${APP_PID}" || true
-          wait "${APP_PID}" || true
+          if kill -0 "${APP_PID}" 2>/dev/null; then
+            kill "${APP_PID}"
+            wait "${APP_PID}" || true
+          fi
 
       - name: Smoke test packaged app (Windows)
         if: runner.os == 'Windows'
