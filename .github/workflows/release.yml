@@ -138,7 +138,8 @@ jobs:
             exit 1
           fi
 
-          LOG_FILE="$(mktemp "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/linguadraft-mac-smoke.XXXXXX.log")"
+          APP_ID="$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9._-')"
+          LOG_FILE="$(mktemp "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/${APP_ID}-mac-smoke.XXXXXX.log")"
           trap 'rm -f "${LOG_FILE}"' EXIT
           "${APP_EXEC}" --no-sandbox --disable-gpu > "${LOG_FILE}" 2>&1 &
           APP_PID=$!
@@ -165,8 +166,9 @@ jobs:
             throw "No packaged executable found under release/win-unpacked"
           }
 
-          $stdoutLog = Join-Path $env:RUNNER_TEMP "linguadraft-win-smoke.stdout.log"
-          $stderrLog = Join-Path $env:RUNNER_TEMP "linguadraft-win-smoke.stderr.log"
+          $appId = [System.IO.Path]::GetFileNameWithoutExtension($exe.Name).ToLowerInvariant()
+          $stdoutLog = Join-Path $env:RUNNER_TEMP "$appId-win-smoke.stdout.log"
+          $stderrLog = Join-Path $env:RUNNER_TEMP "$appId-win-smoke.stderr.log"
           $process = Start-Process -FilePath $exe.FullName -ArgumentList "--no-sandbox", "--disable-gpu" -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog -PassThru
           Start-Sleep -Seconds ([int]$env:SMOKE_TEST_WAIT_SECONDS)
 
