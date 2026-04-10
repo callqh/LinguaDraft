@@ -114,6 +114,8 @@ jobs:
           services/ai-sidecar/.venv/Scripts/python -m pip install -r services/ai-sidecar/requirements.txt
 
       - name: Build package
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: pnpm ${{ matrix.dist_cmd }}
 
       - name: Upload package artifact
