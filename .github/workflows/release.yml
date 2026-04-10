@@ -163,10 +163,14 @@ jobs:
             throw "No packaged executable found under release/win-unpacked"
           }
 
-          $process = Start-Process -FilePath $exe.FullName -ArgumentList "--no-sandbox", "--disable-gpu" -PassThru
+          $stdoutLog = Join-Path $env:RUNNER_TEMP "linguadraft-win-smoke.stdout.log"
+          $stderrLog = Join-Path $env:RUNNER_TEMP "linguadraft-win-smoke.stderr.log"
+          $process = Start-Process -FilePath $exe.FullName -ArgumentList "--no-sandbox", "--disable-gpu" -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog -PassThru
           Start-Sleep -Seconds ([int]$env:SMOKE_TEST_WAIT_SECONDS)
 
           if ($process.HasExited) {
+            if (Test-Path $stdoutLog) { Get-Content $stdoutLog }
+            if (Test-Path $stderrLog) { Get-Content $stderrLog }
             throw "Packaged Windows app exited too early with code $($process.ExitCode)"
           }
 
