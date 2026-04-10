@@ -29,14 +29,44 @@ export const ModelRow = ({ model, onDownload, onPause, onResume, onCancel, onDel
     <div className="text-textMuted">{statusText[model.status]}</div>
     <div className="text-textMuted">{model.size.toFixed(1)} GB</div>
     <div className="flex items-center justify-end gap-1">
-      {!model.builtIn && model.status !== "installed" ? (
-        <span className="text-xs text-textMuted">即将上线，敬请期待</span>
-      ) : null}
+      {!model.builtIn && model.status === "not_installed" && (
+        <button className="btn-primary text-xs h-7 px-3" onClick={() => onDownload(model.id)}>
+          下载
+        </button>
+      )}
+      {!model.builtIn && model.status === "failed" && (
+        <button className="btn-primary text-xs h-7 px-3" onClick={() => onDownload(model.id)}>
+          重试
+        </button>
+      )}
+      {!model.builtIn && model.status === "downloading" && (
+        <>
+          <button className="btn-ghost text-xs h-7 px-3" onClick={() => onPause(model.id)}>
+            暂停
+          </button>
+          <button className="btn-ghost text-xs h-7 px-3 text-red-500" onClick={() => onCancel(model.id)}>
+            取消
+          </button>
+        </>
+      )}
+      {!model.builtIn && model.status === "paused" && (
+        <>
+          <button className="btn-primary text-xs h-7 px-3" onClick={() => onResume(model.id)}>
+            继续
+          </button>
+          <button className="btn-ghost text-xs h-7 px-3 text-red-500" onClick={() => onCancel(model.id)}>
+            取消
+          </button>
+        </>
+      )}
       {model.status === "installed" && !model.builtIn && (
         <button className="btn-ghost text-xs text-red-500" onClick={() => onDelete(model.id)}>
           删除
         </button>
       )}
+      {model.status === "installed" && model.builtIn ? (
+        <span className="text-xs text-emerald-600">已内置</span>
+      ) : null}
     </div>
     {(model.status === "downloading" || model.status === "failed") && (
       <div className="col-span-4 mt-1 h-1.5 rounded-full bg-slate-100">

@@ -14,6 +14,17 @@ const ensureDir = (dirPath: string) => {
   if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
 };
 
+const HF_PRIMARY_BASE = "https://huggingface.co";
+const HF_MIRROR_BASE = "https://hf-mirror.com";
+
+const getRepoBaseCandidates = (repo: string) => {
+  const pathPart = `/${repo}/resolve/main`;
+  const envMirror = process.env.LINGUA_HF_MIRROR_BASE?.trim().replace(/\/$/, "");
+  const bases = [HF_PRIMARY_BASE, HF_MIRROR_BASE];
+  if (envMirror) bases.unshift(envMirror);
+  return Array.from(new Set(bases)).map((base) => `${base}${pathPart}`);
+};
+
 const readJson = <T>(filePath: string): T | null => {
   try {
     if (!fs.existsSync(filePath)) return null;
@@ -40,10 +51,17 @@ export class ModelManager {
 
   private routeInstalled(route: NonNullable<LocalModel["routes"]>[number]) {
     const modelDir = path.join(this.modelFileRoot, "translation", route.pairCode);
+    const hasVocab =
+      fs.existsSync(path.join(modelDir, "shared_vocabulary.json")) ||
+      fs.existsSync(path.join(modelDir, "shared_vocabulary.txt")) ||
+      fs.existsSync(path.join(modelDir, "vocab.json")) ||
+      fs.existsSync(path.join(modelDir, "vocabulary.json"));
     return (
+      fs.existsSync(path.join(modelDir, "config.json")) &&
       fs.existsSync(path.join(modelDir, "model.bin")) &&
       fs.existsSync(path.join(modelDir, "source.spm")) &&
-      fs.existsSync(path.join(modelDir, "target.spm"))
+      fs.existsSync(path.join(modelDir, "target.spm")) &&
+      hasVocab
     );
   }
 
@@ -107,6 +125,15 @@ export class ModelManager {
   }
 
   listModels() {
+    // Reconcile runtime files with in-memory status to avoid stale "installed" state.
+    let changed = false;
+    this.models = this.models.map((model) => {
+      if (model.status !== "installed") return model;
+      if (this.modelFullyInstalled(model)) return model;
+      changed = true;
+      return { ...model, status: "not_installed", progress: 0 };
+    });
+    if (changed) this.persist();
     return structuredClone(this.models);
   }
 
@@ -134,29 +161,44 @@ export class ModelManager {
   }
 
   private async downloadToFile(
-    url: string,
+    urls: string[],
     targetPath: string,
     onProgress: (deltaBytes: number) => void,
     signal: AbortSignal,
   ) {
     ensureDir(path.dirname(targetPath));
-    const response = await fetch(url, { signal });
-    if (!response.ok || !response.body) {
-      throw new Error(`download-failed:${response.status}:${url}`);
-    }
-    const file = fs.createWriteStream(targetPath);
-    const reader = response.body.getReader();
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (!value) continue;
-        onProgress(value.byteLength);
-        file.write(Buffer.from(value));
+    let lastError: Error | null = null;
+    for (const url of urls) {
+      try {
+        const response = await fetch(url, {
+          signal,
+          headers: {
+            "User-Agent": "LinguaDraft/1.0",
+            "Accept": "*/*",
+          },
+        });
+        if (!response.ok || !response.body) {
+          throw new Error(`download-failed:${response.status}:${url}`);
+        }
+        const file = fs.createWriteStream(targetPath);
+        const reader = response.body.getReader();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (!value) continue;
+            onProgress(value.byteLength);
+            file.write(Buffer.from(value));
+          }
+        } finally {
+          await new Promise<void>((resolve) => file.end(() => resolve()));
+        }
+        return;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
       }
-    } finally {
-      await new Promise<void>((resolve) => file.end(() => resolve()));
     }
+    throw lastError ?? new Error(`download-failed:${targetPath}`);
   }
 
   private async downloadSentencePiece(
@@ -165,7 +207,7 @@ export class ModelManager {
     signal: AbortSignal,
     onProgress: (deltaBytes: number) => void,
   ) {
-    const base = `https://huggingface.co/${repo}/resolve/main`;
+    const bases = getRepoBaseCandidates(repo);
     const sourceCandidates = [
       "source.spm",
       "spm.model",
@@ -183,8 +225,9 @@ export class ModelManager {
       let lastError: Error | null = null;
       for (const name of candidates) {
         try {
+          const urls = bases.map((base) => `${base}/${name}`);
           await this.downloadToFile(
-            `${base}/${name}`,
+            urls,
             path.join(modelDir, output),
             onProgress,
             signal,
@@ -208,14 +251,55 @@ export class ModelManager {
   ) {
     const modelDir = path.join(this.modelFileRoot, "translation", route.pairCode);
     ensureDir(modelDir);
-    const base = `https://huggingface.co/${route.modelRepo}/resolve/main`;
+    const bases = getRepoBaseCandidates(route.modelRepo);
     await this.downloadToFile(
-      `${base}/model.bin`,
+      bases.map((base) => `${base}/config.json`),
+      path.join(modelDir, "config.json"),
+      onProgress,
+      signal,
+    );
+    await this.downloadToFile(
+      bases.map((base) => `${base}/model.bin`),
       path.join(modelDir, "model.bin"),
       onProgress,
       signal,
     );
     await this.downloadSentencePiece(route.modelRepo, modelDir, signal, onProgress);
+    await this.downloadVocab(route.modelRepo, modelDir, signal, onProgress);
+  }
+
+  private async downloadVocab(
+    repo: string,
+    modelDir: string,
+    signal: AbortSignal,
+    onProgress: (deltaBytes: number) => void,
+  ) {
+    const bases = getRepoBaseCandidates(repo);
+    const vocabCandidates = [
+      { remote: "shared_vocabulary.json", local: "shared_vocabulary.json" },
+      { remote: "shared_vocabulary.txt", local: "shared_vocabulary.txt" },
+      { remote: "vocab.json", local: "vocab.json" },
+      { remote: "vocabulary.json", local: "vocabulary.json" },
+    ];
+    let downloaded = false;
+    let lastError: Error | null = null;
+    for (const candidate of vocabCandidates) {
+      try {
+        const urls = bases.map((base) => `${base}/${candidate.remote}`);
+        await this.downloadToFile(
+          urls,
+          path.join(modelDir, candidate.local),
+          onProgress,
+          signal,
+        );
+        downloaded = true;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+      }
+    }
+    if (!downloaded) {
+      throw lastError ?? new Error(`missing-vocabulary:${repo}`);
+    }
   }
 
   private async performDownload(model: LocalModel) {
@@ -238,6 +322,9 @@ export class ModelManager {
     try {
       for (const route of model.routes) {
         await this.downloadRoute(route, controller.signal, pushProgress);
+        if (!this.routeInstalled(route)) {
+          throw new Error(`route-files-incomplete:${route.pairCode}`);
+        }
       }
       this.tasks.delete(model.id);
       this.setModel(model.id, { status: "installed", progress: 100 });

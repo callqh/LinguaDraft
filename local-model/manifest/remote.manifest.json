@@ -11,13 +11,13 @@
         "sourceLang": "英文",
         "targetLang": "日文",
         "pairCode": "en-ja",
-        "modelRepo": "gaudi/opus-mt-en-ja-ctranslate2"
+        "modelRepo": "manancode/opus-mt-en-jap-ctranslate2-android"
       },
       {
         "sourceLang": "日文",
         "targetLang": "英文",
         "pairCode": "ja-en",
-        "modelRepo": "gaudi/opus-mt-ja-en-ctranslate2"
+        "modelRepo": "manancode/opus-mt-jap-en-ctranslate2-android"
       }
     ]
   },

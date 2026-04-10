@@ -119,7 +119,11 @@ def _load_translator(source_lang: str, target_lang: str):
 
     source_tokenizer = spm.SentencePieceProcessor(model_file=str(source_spm))
     target_tokenizer = spm.SentencePieceProcessor(model_file=str(target_spm))
-    translator = ctranslate2.Translator(str(model_dir), device="cpu", compute_type="int8")
+    try:
+        translator = ctranslate2.Translator(str(model_dir), device="cpu", compute_type="int8")
+    except Exception as err:
+        logger.error("load translator failed for %s: %s", key, err)
+        return None, None
     _translators[key] = translator
     _tokenizers[key] = (source_tokenizer, target_tokenizer)
     return translator, _tokenizers[key]

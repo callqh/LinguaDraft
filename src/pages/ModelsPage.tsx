@@ -82,6 +82,9 @@ export const ModelsPage = () => {
 
         {activeTab === "local" ? (
           <>
+            <div className="rounded-xl border border-borderSoft bg-white p-3 text-xs text-textMuted">
+              下载对应语言模型后，可在工作台直接翻译到该语言（示例：下载日文模型后可翻译中文 → 日文）。
+            </div>
             <ModelList
               models={translationModels}
               onDownload={(id) => downloadModel(id, showToast)}

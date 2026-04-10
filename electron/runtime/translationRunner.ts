@@ -28,7 +28,10 @@ const normalizeTranslationText = (text: string) => {
 
   const compact: string[] = [];
   for (const token of tokens) {
-    if (!compact.length || compact[compact.length - 1].toLowerCase() !== token.toLowerCase()) {
+    if (
+      !compact.length ||
+      compact[compact.length - 1].toLowerCase() !== token.toLowerCase()
+    ) {
       compact.push(token);
     }
   }
@@ -77,9 +80,9 @@ export const translationRunner = {
         return normalized;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        if (message.includes("translation-quality-low")) {
-          throw new Error("翻译结果质量不稳定，请补充上下文后重试");
-        }
+        // if (message.includes("translation-quality-low")) {
+        //   throw new Error("翻译结果质量不稳定，请补充上下文后重试");
+        // }
         if (message.includes("translation-model-not-ready")) {
           throw new Error(`${from} 到 ${to} 模型未就绪，请先下载对应模型`);
         }
