@@ -139,6 +139,9 @@ jobs:
           fi
 
           APP_ID="$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9._-')"
+          if [ -z "${APP_ID}" ]; then
+            APP_ID="app"
+          fi
           LOG_FILE="$(mktemp "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/${APP_ID}-mac-smoke.XXXXXX.log")"
           trap 'rm -f "${LOG_FILE}"' EXIT
           "${APP_EXEC}" --no-sandbox --disable-gpu > "${LOG_FILE}" 2>&1 &
@@ -167,19 +170,26 @@ jobs:
           }
 
           $appId = [System.IO.Path]::GetFileNameWithoutExtension($exe.Name).ToLowerInvariant()
+          if ([string]::IsNullOrWhiteSpace($appId)) {
+            $appId = "app"
+          }
           $stdoutLog = Join-Path $env:RUNNER_TEMP "$appId-win-smoke.stdout.log"
           $stderrLog = Join-Path $env:RUNNER_TEMP "$appId-win-smoke.stderr.log"
-          $process = Start-Process -FilePath $exe.FullName -ArgumentList "--no-sandbox", "--disable-gpu" -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog -PassThru
-          Start-Sleep -Seconds ([int]$env:SMOKE_TEST_WAIT_SECONDS)
+          try {
+            $process = Start-Process -FilePath $exe.FullName -ArgumentList "--no-sandbox", "--disable-gpu" -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog -PassThru
+            Start-Sleep -Seconds ([int]$env:SMOKE_TEST_WAIT_SECONDS)
 
-          if ($process.HasExited) {
-            if (Test-Path $stdoutLog) { Get-Content $stdoutLog }
-            if (Test-Path $stderrLog) { Get-Content $stderrLog }
-            throw "Packaged Windows app exited too early with code $($process.ExitCode)"
+            if ($process.HasExited) {
+              if (Test-Path $stdoutLog) { Get-Content $stdoutLog }
+              if (Test-Path $stderrLog) { Get-Content $stderrLog }
+              throw "Packaged Windows app exited too early with code $($process.ExitCode)"
+            }
+
+            Stop-Process -Id $process.Id -Force
+            Wait-Process -Id $process.Id -ErrorAction SilentlyContinue
+          } finally {
+            Remove-Item -Path $stdoutLog, $stderrLog -ErrorAction SilentlyContinue
           }
-
-          Stop-Process -Id $process.Id -Force
-          Wait-Process -Id $process.Id -ErrorAction SilentlyContinue
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
