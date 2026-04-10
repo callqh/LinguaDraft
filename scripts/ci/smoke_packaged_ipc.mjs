@@ -1,7 +1,21 @@
 #!/usr/bin/env node
 import path from "node:path";
 import process from "node:process";
-import { _electron as electron } from "playwright";
+
+const resolveElectronLauncher = async () => {
+  const candidates = ["playwright", "@playwright/test", "playwright-core"];
+  for (const pkg of candidates) {
+    try {
+      const mod = await import(pkg);
+      if (mod?._electron) return mod._electron;
+    } catch {
+      // try next package
+    }
+  }
+  throw new Error(
+    "Cannot load Playwright electron launcher. Tried: playwright, @playwright/test, playwright-core",
+  );
+};
 
 const executablePath = process.argv[2] ? path.resolve(process.argv[2]) : "";
 if (!executablePath) {
@@ -9,6 +23,7 @@ if (!executablePath) {
   process.exit(1);
 }
 
+const electron = await resolveElectronLauncher();
 const app = await electron.launch({
   executablePath,
   args: [],
